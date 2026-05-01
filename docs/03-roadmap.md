@@ -35,7 +35,7 @@ gantt
 | Sprint | 实现图内容 | 文档 | 状态 |
 |--------|-----------|------|------|
 | **S1** | 地图骨架实现图：Cocos 场景树 + 节点渲染流程 + 后端 World API 时序 | [docs/sprint/s1-map-skeleton.md](sprint/s1-map-skeleton.md) | ✅ 已交付 |
-| **S2** | 特工/队伍实现图：类图 + Team 组件 UI + 后端 Agent CRUD 时序 | docs/sprint/s2-agent-team.md | ⬜ 待画 |
+| **S2** | 特工/队伍实现图：类图 + Team 组件 UI + 后端 Agent CRUD 时序 | [docs/sprint/s2-agent-team.md](sprint/s2-agent-team.md) | ✅ 已交付 |
 | **S3** | 任务系统实现图：任务状态机 + Mission 类图 + 接取/结算时序 | docs/sprint/s3-mission.md | ⬜ 待画 |
 | **S4 ★** | 出行系统实现图：Dijkstra 流程 + Trip 完整生命周期 + 路上事件流程 + 三视图切换 | docs/sprint/s4-travel.md | ⬜ 待画 |
 | **S5** | 建造研究实现图：科技树数据结构 + 建造成本 + 解锁规则 | docs/sprint/s5-build-research.md | ⬜ 待画 |
