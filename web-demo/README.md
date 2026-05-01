@@ -5,11 +5,12 @@
 
 ## 🎮 如何玩
 
-### 方式 1: 直接双击（最简单）
+### 🅰 方式 1: 双击 standalone.html（最简单 ⭐ 推荐）
 
-由于浏览器对 `file://` 的 ES Module 限制，**必须**通过 HTTP 服务器打开。下面任选一种：
+直接 **双击 `web-demo/standalone.html`** 即可在浏览器中游玩。  
+单文件版（HTML+CSS+JS 全部内联），**不需要服务器**，**不需要 Python/Node**。
 
-### 方式 2: Python 自带服务器（推荐）
+### 🅱 方式 2: Python 内置服务器（开发推荐）
 
 ```bash
 cd web-demo
@@ -17,15 +18,25 @@ python -m http.server 5500
 # 浏览器打开 http://127.0.0.1:5500
 ```
 
-### 方式 3: Node 一行命令
+> ⚠️ 注意：直接双击 `index.html` 会失败（浏览器对 `file://` 阻止 ES Module）。  
+> 这是 ES Module 的 CORS 限制，要么用方式 🅰 standalone.html，要么用方式 🅱 起服务器。
+
+### 🅲 方式 3: Node 一行命令
 
 ```bash
 npx serve web-demo -p 5500
 ```
 
-### 方式 4: VS Code "Live Server" 插件
+### 🅳 方式 4: VS Code "Live Server" 插件
 
 右键 `index.html` → Open with Live Server
+
+## 📄 两个版本对比
+
+| 文件 | 适用场景 | 优势 | 限制 |
+|------|---------|------|------|
+| `standalone.html` | **快速演示 / 评审** | 双击即开, 无依赖, 单文件 27KB | 无法接真后端 |
+| `index.html` + `js/*.js` | **开发 / 接后端** | 模块化, 可独立改 data/planner/map | 需要 HTTP 服务器 |
 
 ## 🕹️ 玩法
 

@@ -83,6 +83,7 @@ map-game/
 - [Server README](server/README.md) — 后端启动 + API 一览
 - [Client README](client/README.md) — 前端如何接入 Cocos Creator
 - [★ Web Demo README](web-demo/README.md) — 浏览器即开即玩, 演示 S4 出行全闭环
+  - **`web-demo/standalone.html`** — 单文件版, **双击即开**, 无需服务器
 
 ## 🗺️ 落地路线（MVP → 完整版）
 

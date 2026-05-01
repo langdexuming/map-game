@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>小小特工 · 出行 Demo · 单文件版</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif; }
+        body { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 50%, #fef3c7 100%); color: #4b3a2f; min-height: 100vh; overflow: hidden; }
+        #app { display: flex; flex-direction: column; height: 100vh; }
+        .topbar { height: 60px; background: rgba(255,255,255,0.85); border-bottom: 2px solid #d4a574; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .topbar .title { display: flex; align-items: center; gap: 8px; font-weight: bold; font-size: 18px; color: #6b4423; }
+        .topbar .logo { font-size: 24px; }
+        .topbar .status { display: flex; gap: 10px; }
+        .pill { background: #fff8e1; border: 1px solid #d4a574; padding: 6px 12px; border-radius: 20px; font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 4px; }
+        .pill .ico { font-size: 16px; }
+        .pill.turn { background: #ffe082; }
+        .layout { flex: 1; display: grid; grid-template-columns: 220px 1fr 320px; gap: 12px; padding: 12px; overflow: hidden; }
+        aside.left, aside.right { background: rgba(255,255,255,0.7); border: 1px solid #d4a574; border-radius: 10px; padding: 12px; overflow-y: auto; }
+        aside.left h3, aside.right h3 { font-size: 13px; font-weight: bold; color: #6b4423; margin: 12px 0 6px 0; text-transform: uppercase; letter-spacing: 0.5px; }
+        aside.left h3:first-child { margin-top: 0; }
+        .view-btn { display: block; width: 100%; padding: 8px; margin-bottom: 4px; background: #fff8e1; border: 1px solid #d4a574; border-radius: 6px; cursor: pointer; text-align: left; font-size: 13px; }
+        .view-btn:hover { background: #ffe082; }
+        .view-btn.active { background: #ffd866; font-weight: bold; box-shadow: inset 0 0 0 2px #d4a574; }
+        .legend { font-size: 12px; padding: 3px 0; display: flex; align-items: center; gap: 6px; }
+        .legend .swatch { display: inline-block; width: 24px; height: 3px; border-radius: 2px; background: #f59e0b; }
+        .legend.ship .swatch { background: #3b82f6; }
+        .legend.train .swatch { background: #92400e; }
+        .legend.truck .swatch { background: #6b7280; }
+        .legend.foot .swatch { background: #10b981; }
+        #city-list { font-size: 12px; }
+        #city-list .city-item { padding: 4px 6px; cursor: pointer; border-radius: 4px; }
+        #city-list .city-item:hover { background: #fef3c7; }
+        #city-list .city-item.selected { background: #ffd866; font-weight: bold; }
+        #city-list .city-item .level { float: right; color: #92400e; font-size: 10px; }
+        section.center { position: relative; background: linear-gradient(180deg, #87ceeb 0%, #b3d9e8 60%, #c8e1ec 100%); border-radius: 10px; overflow: hidden; box-shadow: inset 0 0 30px rgba(0,0,0,0.1); }
+        #map { display: block; width: 100%; height: 100%; cursor: pointer; }
+        #hint { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.85); padding: 4px 12px; border-radius: 12px; font-size: 12px; color: #6b4423; }
+        .planner { background: #fff8e1; border: 2px solid #d4a574; border-radius: 10px; padding: 10px; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .planner.hidden { display: none; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; font-weight: bold; color: #6b4423; padding-bottom: 6px; border-bottom: 1px solid #d4a574; }
+        .card-header button { background: none; border: none; font-size: 20px; cursor: pointer; color: #6b4423; }
+        .card-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 12px; }
+        .plan-row { display: flex; justify-content: space-between; padding: 8px; margin: 4px 0; background: #fff; border-radius: 6px; cursor: pointer; border: 1px solid #d4a574; font-size: 12px; }
+        .plan-row:hover { background: #ffe082; }
+        .plan-row.recommended { background: #d1fae5; border-color: #10b981; }
+        .plan-row .meta { font-size: 11px; color: #6b7280; }
+        .card-foot { display: flex; justify-content: space-between; padding: 6px 0; font-size: 11px; color: #6b7280; border-top: 1px solid #d4a574; margin-top: 6px; }
+        .trip-log { background: #fff8e1; border: 1px solid #d4a574; border-radius: 10px; padding: 10px; max-height: 200px; overflow-y: auto; margin-bottom: 12px; }
+        .trip-log ul { list-style: none; font-size: 11px; }
+        .trip-log li { padding: 3px 0; border-bottom: 1px dashed #e5d4b1; }
+        .trip-log li:last-child { border-bottom: none; }
+        .trip-log li .turn-tag { color: #92400e; font-weight: bold; margin-right: 4px; }
+        .actions { display: flex; gap: 6px; }
+        .big-btn { flex: 1; padding: 10px; background: #f59e0b; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; }
+        .big-btn:hover { background: #d97706; }
+        #reset-btn { padding: 10px 14px; background: #fff; border: 1px solid #d4a574; border-radius: 8px; cursor: pointer; }
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 100; }
+        .modal.hidden { display: none; }
+        .modal-card { background: white; border-radius: 12px; padding: 20px; min-width: 400px; max-width: 500px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
+        .modal-title { font-size: 18px; font-weight: bold; color: #6b4423; margin-bottom: 12px; }
+        .modal-body { font-size: 14px; line-height: 1.6; padding: 8px 0; color: #4b3a2f; }
+        .modal-actions { display: flex; gap: 8px; margin-top: 16px; }
+        .modal-actions button { flex: 1; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .modal-actions button.primary { background: #f59e0b; color: white; }
+        .modal-actions button:disabled { opacity: 0.4; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+<div id="app">
+    <header class="topbar">
+        <div class="title"><span class="logo">🛰️</span><span>小小特工 · 出行 Demo · 单文件版</span></div>
+        <div class="status">
+            <div class="pill"><span class="ico">🪙</span><span id="stat-coin">5000</span></div>
+            <div class="pill"><span class="ico">🔍</span><span id="stat-clue">1200</span></div>
+            <div class="pill"><span class="ico">⭐</span><span id="stat-star">850</span></div>
+            <div class="pill"><span class="ico">⛽</span><span id="stat-fuel">200</span></div>
+            <div class="pill turn"><span class="ico">📅</span>Day <span id="stat-day">1</span> · Turn <span id="stat-turn">1</span></div>
+        </div>
+    </header>
+    <main class="layout">
+        <aside class="left">
+            <h3>Map Views</h3>
+            <button data-view="EXPLORER" class="view-btn">🌍 Explorer</button>
+            <button data-view="RESOURCE" class="view-btn">💎 Resource</button>
+            <button data-view="TEAM"     class="view-btn">👥 Team</button>
+            <button data-view="TRAVEL"   class="view-btn active">✈ ★ Travel</button>
+            <h3>载具图例</h3>
+            <div class="legend"><span class="swatch"></span>飞机 PLANE</div>
+            <div class="legend ship"><span class="swatch"></span>轮船 SHIP</div>
+            <div class="legend train"><span class="swatch"></span>火车 TRAIN</div>
+            <div class="legend truck"><span class="swatch"></span>卡车 TRUCK</div>
+            <div class="legend foot"><span class="swatch"></span>越野 FOOT</div>
+            <h3>City 列表</h3>
+            <div id="city-list"></div>
+        </aside>
+        <section class="center">
+            <canvas id="map" width="1100" height="600"></canvas>
+            <div id="hint">点击任意两个城市发起出行规划</div>
+        </section>
+        <aside class="right">
+            <div id="planner" class="planner hidden">
+                <div class="card-header"><span>★ 行程规划器</span><button id="planner-close">×</button></div>
+                <div class="card-row"><span>From: <b id="plan-from">-</b></span><span>To: <b id="plan-to">-</b></span></div>
+                <div id="plan-list"></div>
+                <div class="card-foot"><span>燃料消耗: <b id="plan-fuel-cost">0</b></span><span>队伍疲劳: <b>+15</b></span></div>
+            </div>
+            <div id="trip-log" class="trip-log"><h3>★ Trip Log</h3><ul id="log-list"></ul></div>
+            <div class="actions"><button id="end-turn-btn" class="big-btn">End Turn ▶</button><button id="reset-btn">Reset</button></div>
+        </aside>
+    </main>
+    <div id="event-modal" class="modal hidden">
+        <div class="modal-card">
+            <div class="modal-title" id="event-title">路上事件</div>
+            <div class="modal-body" id="event-body"></div>
+            <div class="modal-actions" id="event-actions"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+/* ============ 数据 ============ */
+const VEHICLE_NAME = { 1: 'PLANE', 2: 'SHIP', 3: 'TRAIN', 4: 'TRUCK', 5: 'FOOT' };
+const VEHICLE_ICON = { 1: '✈', 2: '⛴', 3: '🚆', 4: '🚚', 5: '🥾' };
+const VEHICLE_COLOR = { 1: '#f59e0b', 2: '#3b82f6', 3: '#92400e', 4: '#6b7280', 5: '#10b981' };
+const VEHICLE_DASH  = { 1: [8, 4], 2: [], 3: [2, 4], 4: [], 5: [6, 6] };
+
+const CITIES = [
+    { id: 1, name: 'Little Aegis HQ',  level: 1, lng: -10, lat: 30,  unlocked: true },
+    { id: 2, name: 'Nova Base',         level: 1, lng: 60,  lat: 35,  unlocked: true },
+    { id: 3, name: 'Apex HQ',           level: 1, lng: -45, lat: -15, unlocked: true },
+    { id: 4, name: 'Synergy City',      level: 2, lng: -30, lat: -25, unlocked: true },
+    { id: 5, name: 'Nave Outpost',      level: 3, lng: 85,  lat: -10, unlocked: true },
+    { id: 6, name: 'Greenforest Hub',   level: 1, lng: 25,  lat: 5,   unlocked: true },
+];
+const R = (from, to, vt, dist, price, turn) => ({ fromCity: from, toCity: to, vehicleType: vt, distance: dist, basePrice: price, baseTurn: turn });
+const ROUTES = [
+    R(1, 2, 1, 7000, 320, 2), R(2, 1, 1, 7000, 320, 2),
+    R(1, 3, 1, 5500, 280, 2), R(3, 1, 1, 5500, 280, 2),
+    R(1, 6, 1, 4000, 220, 2), R(6, 1, 1, 4000, 220, 2),
+    R(2, 6, 1, 4500, 240, 2), R(6, 2, 1, 4500, 240, 2),
+    R(3, 6, 1, 5000, 260, 2), R(6, 3, 1, 5000, 260, 2),
+    R(1, 3, 2, 5500, 130, 4), R(3, 1, 2, 5500, 130, 4),
+    R(2, 6, 2, 4500, 110, 3), R(6, 2, 2, 4500, 110, 3),
+    R(3, 4, 2, 800,  60,  1), R(4, 3, 2, 800,  60,  1),
+    R(3, 4, 3, 700, 80, 1),   R(4, 3, 3, 700, 80, 1),
+    R(1, 6, 3, 3500, 180, 3), R(6, 1, 3, 3500, 180, 3),
+    R(6, 5, 4, 1500, 90, 2),  R(5, 6, 4, 1500, 90, 2),
+    R(4, 5, 5, 2000, 0, 5),   R(5, 4, 5, 2000, 0, 5),
+];
+const cityById = id => CITIES.find(c => c.id === id);
+const TRIP_EVENTS = [
+    { weight: 25, code: 'NONE',       title: '一切顺利',     body: '本回合平稳推进。' },
+    { weight: 25, code: 'CLUE_FOUND', title: '偶遇线索',     body: '路上发现一条新线索!', effect: { clue: 1 } },
+    { weight: 20, code: 'TROUBLE',    title: '小麻烦',       body: '损失 10 金币。', effect: { coin: -10 } },
+    { weight: 15, code: 'WEATHER',    title: '天气延迟',     body: '行程延迟 1 回合。', effect: { delay: 1 } },
+    { weight: 10, code: 'BANDIT',     title: '⚔ 强盗袭击',   body: '前方有强盗! 你的选择?', interactive: true,
+        choices: [
+            { key: 'fight', label: '正面战斗', effect: { coin: 50,  label: '战斗胜利, +50 金币' } },
+            { key: 'flee',  label: '撤退绕路', effect: { delay: 1,  label: '安全撤退, +1 回合' } },
+            { key: 'bribe', label: '贿赂 100 金币', requireCoin: 100, effect: { coin: -100, label: '贿赂成功' } },
+        ] },
+    { weight: 5,  code: 'HIDDEN',     title: '★ 隐藏支线!',  body: '解锁新任务!', effect: { star: 1, clue: 2 } },
+];
+
+/* ============ Dijkstra ============ */
+function buildAdj() { const a = new Map(); for (const c of CITIES) a.set(c.id, []); for (const r of ROUTES) a.get(r.fromCity).push(r); return a; }
+function weight(r, pref) {
+    if (pref === 1) return r.baseTurn;
+    if (pref === 2) return r.basePrice + 0.01;
+    return (r.vehicleType === 2 ? 0.30 : r.vehicleType === 5 ? 0.40 : 0.20) * 100;
+}
+function dijkstra(from, to, pref) {
+    const adj = buildAdj(); const dist = new Map(); const prev = new Map(); const prevR = new Map();
+    for (const c of CITIES) dist.set(c.id, Infinity);
+    dist.set(from, 0);
+    const visited = new Set();
+    while (visited.size < CITIES.length) {
+        let u = null, best = Infinity;
+        for (const c of CITIES) if (!visited.has(c.id) && dist.get(c.id) < best) { best = dist.get(c.id); u = c.id; }
+        if (u === null || best === Infinity) break;
+        if (u === to) break;
+        visited.add(u);
+        for (const r of adj.get(u)) {
+            const nd = dist.get(u) + weight(r, pref);
+            if (nd < dist.get(r.toCity)) { dist.set(r.toCity, nd); prev.set(r.toCity, u); prevR.set(r.toCity, r); }
+        }
+    }
+    if (dist.get(to) === Infinity) return null;
+    const routes = []; let cur = to;
+    while (cur !== from) { const r = prevR.get(cur); if (!r) return null; routes.unshift(r); cur = prev.get(cur); }
+    return routes;
+}
+function toPlan(no, routes, desc) {
+    const totalTurn = routes.reduce((s, r) => s + r.baseTurn, 0);
+    const totalPrice = routes.reduce((s, r) => s + r.basePrice, 0);
+    return { planNo: no, routes, totalTurn, totalPrice, vehicleChain: routes.map(r => VEHICLE_NAME[r.vehicleType]), eventExpect: Math.round(totalTurn * 0.25), bonusDesc: desc };
+}
+function planTrip(from, to) {
+    if (from === to) return { error: '起终点相同' };
+    const fast = dijkstra(from, to, 1), cheap = dijkstra(from, to, 2), safe = dijkstra(from, to, 3);
+    if (!fast && !cheap && !safe) return { error: '无法到达' };
+    const plans = [];
+    if (fast) plans.push(toPlan(1, fast, '⚡ 最快抵达'));
+    if (cheap && JSON.stringify(cheap) !== JSON.stringify(fast)) plans.push(toPlan(2, cheap, '💰 最省 +1 Clue'));
+    if (safe && JSON.stringify(safe) !== JSON.stringify(fast) && JSON.stringify(safe) !== JSON.stringify(cheap)) plans.push(toPlan(3, safe, '🛡 最低风险'));
+    return { plans };
+}
+
+/* ============ Canvas 渲染 ============ */
+const canvas = document.getElementById('map');
+const ctx = canvas.getContext('2d');
+function project(lng, lat) { return { x: (lng + 100) * (canvas.width / 220), y: (50 - lat) * (canvas.height / 100) }; }
+let activeTrips = [];
+let lastFrame = performance.now();
+function drawContinents() {
+    const blobs = [
+        { lng: -10, lat: 30, rx: 60, ry: 40 }, { lng: 60, lat: 35, rx: 80, ry: 55 },
+        { lng: -40, lat: -20, rx: 70, ry: 45 }, { lng: 80, lat: -10, rx: 50, ry: 35 },
+        { lng: 25, lat: 5, rx: 70, ry: 50 },
+    ];
+    for (const b of blobs) {
+        const p = project(b.lng, b.lat);
+        ctx.fillStyle = '#fef3c7'; ctx.beginPath(); ctx.ellipse(p.x, p.y, b.rx, b.ry, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#d4a574'; ctx.lineWidth = 2; ctx.stroke();
+    }
+}
+function drawAllRoutes() {
+    const drawn = new Set();
+    for (const r of ROUTES) {
+        const k = Math.min(r.fromCity, r.toCity) + '-' + Math.max(r.fromCity, r.toCity) + '-' + r.vehicleType;
+        if (drawn.has(k)) continue; drawn.add(k);
+        const a = cityById(r.fromCity), b = cityById(r.toCity);
+        const pa = project(a.lng, a.lat), pb = project(b.lng, b.lat);
+        ctx.strokeStyle = VEHICLE_COLOR[r.vehicleType]; ctx.lineWidth = 2;
+        ctx.setLineDash(VEHICLE_DASH[r.vehicleType] || []);
+        ctx.globalAlpha = 0.55; ctx.beginPath(); ctx.moveTo(pa.x, pa.y);
+        const cx = (pa.x + pb.x) / 2, cy = (pa.y + pb.y) / 2 - 30;
+        ctx.quadraticCurveTo(cx, cy, pb.x, pb.y); ctx.stroke();
+        ctx.globalAlpha = 1;
+    }
+    ctx.setLineDash([]);
+}
+function drawHighlightedTrip(trip) {
+    for (const r of trip.routes) {
+        const a = cityById(r.fromCity), b = cityById(r.toCity);
+        const pa = project(a.lng, a.lat), pb = project(b.lng, b.lat);
+        ctx.strokeStyle = '#dc2626'; ctx.lineWidth = 4; ctx.setLineDash([]);
+        ctx.beginPath(); ctx.moveTo(pa.x, pa.y);
+        const cx = (pa.x + pb.x) / 2, cy = (pa.y + pb.y) / 2 - 30;
+        ctx.quadraticCurveTo(cx, cy, pb.x, pb.y); ctx.stroke();
+    }
+}
+function drawCity(c) {
+    const p = project(c.lng, c.lat);
+    ctx.beginPath(); ctx.arc(p.x, p.y, 18, 0, Math.PI * 2);
+    ctx.fillStyle = c.level === 1 ? '#fbbf24' : c.level === 2 ? '#a3e635' : '#94a3b8';
+    ctx.fill(); ctx.strokeStyle = '#6b4423'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = '#6b4423'; ctx.font = 'bold 12px sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(c.name, p.x, p.y + 22);
+}
+function drawVehicle(trip) {
+    const totalTurn = trip.routes.reduce((s, r) => s + r.baseTurn, 0);
+    const realTurn = totalTurn + (trip.delayTurn || 0);
+    const t = Math.min(trip.elapsed / realTurn, 1);
+    let acc = 0, idx = 0, lt = 0;
+    const segLengths = trip.routes.map(r => r.baseTurn / realTurn);
+    for (let i = 0; i < segLengths.length; i++) {
+        if (t < acc + segLengths[i]) { idx = i; lt = (t - acc) / segLengths[i]; break; }
+        acc += segLengths[i];
+        if (i === segLengths.length - 1) { idx = i; lt = 1; }
+    }
+    const r = trip.routes[idx];
+    const a = cityById(r.fromCity), b = cityById(r.toCity);
+    const pa = project(a.lng, a.lat), pb = project(b.lng, b.lat);
+    const cx = (pa.x + pb.x) / 2, cy = (pa.y + pb.y) / 2 - 30;
+    const x = (1 - lt) * (1 - lt) * pa.x + 2 * (1 - lt) * lt * cx + lt * lt * pb.x;
+    const y = (1 - lt) * (1 - lt) * pa.y + 2 * (1 - lt) * lt * cy + lt * lt * pb.y;
+    ctx.font = '24px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(VEHICLE_ICON[r.vehicleType], x, y);
+}
+function loop() {
+    requestAnimationFrame(loop);
+    const now = performance.now(); const dt = (now - lastFrame) / 1000; lastFrame = now;
+    for (const t of activeTrips) if (!t.paused) t.elapsed += dt;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawContinents();
+    if (state.currentView === 'TRAVEL') drawAllRoutes();
+    for (const t of activeTrips) drawHighlightedTrip(t);
+    for (const c of CITIES) drawCity(c);
+    for (const t of activeTrips) drawVehicle(t);
+    if (state.firstClickCity) {
+        const p = project(state.firstClickCity.lng, state.firstClickCity.lat);
+        ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(p.x, p.y, 26, 0, Math.PI * 2); ctx.stroke();
+    }
+}
+canvas.addEventListener('click', e => {
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+    const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+    for (const c of CITIES) {
+        const p = project(c.lng, c.lat);
+        if (Math.hypot(p.x - x, p.y - y) < 22) { onCityClick(c); return; }
+    }
+});
+
+/* ============ 状态机 + UI ============ */
+const state = { coin: 5000, clue: 1200, star: 850, fuel: 200, turn: 1, currentView: 'TRAVEL', firstClickCity: null, secondClickCity: null, nextTripId: 1 };
+function onCityClick(city) {
+    if (!state.firstClickCity) { state.firstClickCity = city; updateHint('已选 [' + city.name + '], 再点一个目的地'); renderCityList(); return; }
+    if (city.id === state.firstClickCity.id) { state.firstClickCity = null; updateHint('点击任意两个城市发起出行规划'); renderCityList(); return; }
+    state.secondClickCity = city; renderCityList();
+    const r = planTrip(state.firstClickCity.id, city.id);
+    if (r.error) { updateHint('❌ ' + r.error); state.firstClickCity = null; state.secondClickCity = null; renderCityList(); return; }
+    openPlanner(state.firstClickCity, city, r.plans);
+}
+function bookTrip(plan, from, to) {
+    if (state.coin < plan.totalPrice) { alert('金币不足! 需要 ¥' + plan.totalPrice); return; }
+    const fuelCost = plan.routes.reduce((s, r) => s + (r.vehicleType === 5 ? 0 : 10), 0);
+    if (state.fuel < fuelCost) { alert('燃料不足!'); return; }
+    state.coin -= plan.totalPrice; state.fuel -= fuelCost;
+    const trip = { id: state.nextTripId++, from, to, plan, routes: plan.routes, elapsed: 0, delayTurn: 0, paused: false, status: 'IN_TRANSIT', startTurn: state.turn, arriveTurn: state.turn + plan.totalTurn };
+    activeTrips.push(trip);
+    addLog('Plan ' + plan.planNo + ' 订票: ' + from.name + ' → ' + to.name + ', ¥' + plan.totalPrice);
+    addLog('Trip #' + trip.id + ' 起飞 ' + VEHICLE_ICON[plan.routes[0].vehicleType]);
+    closePlanner(); state.firstClickCity = null; state.secondClickCity = null; renderCityList(); renderStatus();
+}
+function advanceTurn() {
+    if (activeTrips.length === 0) { state.turn += 1; renderStatus(); return; }
+    const tripsBefore = [...activeTrips];
+    for (const trip of tripsBefore) {
+        trip.elapsed += 1;
+        if (Math.random() < 0.6) rollEvent(trip);
+        if (trip.elapsed >= trip.plan.totalTurn + trip.delayTurn) {
+            trip.status = 'ARRIVED';
+            addLog('✅ Trip #' + trip.id + ' 抵达 ' + trip.to.name + '!');
+            activeTrips = activeTrips.filter(t => t.id !== trip.id);
+        }
+    }
+    state.turn += 1; renderStatus();
+}
+function rollEvent(trip) {
+    const total = TRIP_EVENTS.reduce((s, e) => s + e.weight, 0);
+    let roll = Math.random() * total; let chosen = null;
+    for (const e of TRIP_EVENTS) { roll -= e.weight; if (roll <= 0) { chosen = e; break; } }
+    if (!chosen || chosen.code === 'NONE') return;
+    if (chosen.interactive) { openInteractiveEvent(trip, chosen); return; }
+    if (chosen.effect) { applyEffect(chosen.effect); if (chosen.effect.delay) trip.delayTurn += chosen.effect.delay; }
+    addLog('🎲 [Trip #' + trip.id + '] ' + chosen.title + ': ' + chosen.body);
+}
+function openInteractiveEvent(trip, event) {
+    trip.paused = true;
+    const modal = document.getElementById('event-modal');
+    document.getElementById('event-title').textContent = event.title;
+    document.getElementById('event-body').textContent = event.body;
+    const actions = document.getElementById('event-actions'); actions.innerHTML = '';
+    for (const c of event.choices) {
+        const btn = document.createElement('button'); btn.textContent = c.label; btn.className = 'primary';
+        if (c.requireCoin && state.coin < c.requireCoin) { btn.disabled = true; btn.title = '需要 ¥' + c.requireCoin; }
+        btn.onclick = () => {
+            if (c.effect) { applyEffect(c.effect); if (c.effect.delay) trip.delayTurn += c.effect.delay; }
+            addLog('🎲 [Trip #' + trip.id + '] ' + event.title + ' → ' + (c.effect.label || c.label));
+            trip.paused = false; modal.classList.add('hidden');
+        };
+        actions.appendChild(btn);
+    }
+    modal.classList.remove('hidden');
+}
+function applyEffect(eff) {
+    if (eff.coin) state.coin = Math.max(0, state.coin + eff.coin);
+    if (eff.clue) state.clue = Math.max(0, state.clue + eff.clue);
+    if (eff.star) state.star = Math.max(0, state.star + eff.star);
+    if (eff.fuel) state.fuel = Math.max(0, state.fuel + eff.fuel);
+    renderStatus();
+}
+function reset() {
+    state.coin = 5000; state.clue = 1200; state.star = 850; state.fuel = 200; state.turn = 1;
+    state.firstClickCity = null; state.secondClickCity = null; state.nextTripId = 1;
+    activeTrips = [];
+    document.getElementById('log-list').innerHTML = '';
+    renderStatus(); renderCityList(); closePlanner();
+}
+function renderStatus() {
+    document.getElementById('stat-coin').textContent = state.coin;
+    document.getElementById('stat-clue').textContent = state.clue;
+    document.getElementById('stat-star').textContent = state.star;
+    document.getElementById('stat-fuel').textContent = state.fuel;
+    document.getElementById('stat-turn').textContent = state.turn;
+    document.getElementById('stat-day').textContent = Math.floor((state.turn - 1) / 10) + 1;
+}
+function renderCityList() {
+    const ul = document.getElementById('city-list'); ul.innerHTML = '';
+    for (const c of CITIES) {
+        const div = document.createElement('div'); div.className = 'city-item';
+        if ((state.firstClickCity && state.firstClickCity.id === c.id) || (state.secondClickCity && state.secondClickCity.id === c.id)) div.classList.add('selected');
+        const lvl = c.level === 1 ? 'Hub' : c.level === 2 ? 'Region' : 'Outpost';
+        div.innerHTML = c.name + '<span class="level">' + lvl + '</span>';
+        div.onclick = () => onCityClick(c); ul.appendChild(div);
+    }
+}
+function updateHint(t) { document.getElementById('hint').textContent = t; }
+function openPlanner(from, to, plans) {
+    document.getElementById('planner').classList.remove('hidden');
+    document.getElementById('plan-from').textContent = from.name;
+    document.getElementById('plan-to').textContent = to.name;
+    const list = document.getElementById('plan-list'); list.innerHTML = '';
+    let minPrice = Infinity; for (const p of plans) if (p.totalPrice < minPrice) minPrice = p.totalPrice;
+    const ICON = { PLANE: '✈', SHIP: '⛴', TRAIN: '🚆', TRUCK: '🚚', FOOT: '🥾' };
+    for (const p of plans) {
+        const row = document.createElement('div'); row.className = 'plan-row';
+        if (p.totalPrice === minPrice && p.planNo === 2) row.classList.add('recommended');
+        row.innerHTML = '<div><div><b>Plan ' + p.planNo + '</b> ' + p.vehicleChain.map(v => ICON[v] || v).join(' + ') + '</div><div class="meta">' + p.totalTurn + '回合 · 期望事件 ' + p.eventExpect + '</div></div><div style="text-align:right"><div>¥' + p.totalPrice + '</div><div class="meta">' + p.bonusDesc + '</div></div>';
+        row.onclick = () => bookTrip(p, from, to); list.appendChild(row);
+    }
+    const fuelCost = plans[0].routes.reduce((s, r) => s + (r.vehicleType === 5 ? 0 : 10), 0);
+    document.getElementById('plan-fuel-cost').textContent = '-' + fuelCost;
+}
+function closePlanner() { document.getElementById('planner').classList.add('hidden'); }
+function addLog(text) {
+    const li = document.createElement('li'); li.innerHTML = '<span class="turn-tag">T' + state.turn + '</span>' + text;
+    document.getElementById('log-list').prepend(li);
+}
+
+document.getElementById('end-turn-btn').onclick = advanceTurn;
+document.getElementById('reset-btn').onclick = reset;
+document.getElementById('planner-close').onclick = () => { closePlanner(); state.firstClickCity = null; state.secondClickCity = null; renderCityList(); };
+document.querySelectorAll('.view-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active'); state.currentView = btn.dataset.view;
+    });
+});
+
+renderStatus(); renderCityList(); addLog('Demo 启动'); loop();
+</script>
+</body>
+</html>
