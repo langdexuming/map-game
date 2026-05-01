@@ -57,11 +57,16 @@ map-game/
 │   ├── 03-roadmap.md
 │   ├── 04-travel-system.md
 │   └── sprint/          # S1-S6 每步实现图
-└── server/              # 后端 Spring Boot 3 工程
-    ├── pom.xml
-    ├── docker-compose.yml
-    ├── README.md        # 启动说明
-    └── src/main/java/com/mapgame/...
+├── server/              # 后端 Spring Boot 3 工程
+│   ├── pom.xml
+│   ├── docker-compose.yml
+│   ├── README.md        # 启动说明
+│   └── src/main/java/com/mapgame/...
+└── client/              # 前端 Cocos Creator 3.8 工程
+    ├── package.json
+    ├── tsconfig.json
+    ├── README.md        # 接入 Cocos 编辑器说明
+    └── assets/scripts/  # api / core / world / travel / ui
 ```
 
 ## 📑 文档目录
@@ -71,6 +76,7 @@ map-game/
 - [03 · 落地路线图](docs/03-roadmap.md) — 6 个 Sprint 的每步实现图清单（全部✅）
 - [04 · 出行系统详细设计](docs/04-travel-system.md) — 多式联运、时刻表、路上事件、任务类型
 - [Server README](server/README.md) — 后端启动 + API 一览
+- [Client README](client/README.md) — 前端如何接入 Cocos Creator
 
 ## 🗺️ 落地路线（MVP → 完整版）
 
@@ -95,7 +101,7 @@ map-game/
 - [x] S5 建造研究实现图
 - [x] S6 事件平衡实现图
 - [x] 后端工程脚手架（Spring Boot 3 + S1 World 范例）
-- [ ] 前端工程脚手架（Cocos Creator）
+- [x] 前端工程脚手架（Cocos Creator 3.8 + TypeScript）
 - [ ] S2-S6 模块全量 DDL + 种子数据
 - [ ] S4 出行可玩 Demo 集成
 

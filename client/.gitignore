@@ -1,0 +1,23 @@
+# Cocos Creator 自动生成
+library/
+local/
+temp/
+build/
+profiles/
+native/
+.creator/
+
+# IDE
+.vscode/
+.idea/
+
+# Node
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Misc
+*.log
+.DS_Store
+Thumbs.db
