@@ -37,7 +37,13 @@ server/
     └── resources/
         ├── application.yml
         ├── application-dev.yml
-        └── db/migration/V1__init_world.sql
+        └── db/migration/
+            ├── V1__init_world.sql           # S1 世界/大陆/城市
+            ├── V2__init_agent_team.sql      # S2 玩家/特工/队伍
+            ├── V3__init_mission.sql         # S3 任务模板/进度/日志
+            ├── V4__init_travel.sql          # S4 路径/班次/行程/事件 ★
+            ├── V5__init_build_research.sql  # S5 建筑/科技16节点/兵种/贸易
+            └── V6__init_event_balance.sql   # S6 事件模板 + 30项数值平衡
 ```
 
 ## 团队 Java 规范对齐

@@ -102,7 +102,7 @@ map-game/
 - [x] S6 事件平衡实现图
 - [x] 后端工程脚手架（Spring Boot 3 + S1 World 范例）
 - [x] 前端工程脚手架（Cocos Creator 3.8 + TypeScript）
-- [ ] S2-S6 模块全量 DDL + 种子数据
+- [x] S2-S6 模块全量 DDL + 种子数据 + 30 项数值平衡
 - [ ] S4 出行可玩 Demo 集成
 
 ## 🤝 协作
