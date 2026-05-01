@@ -1,0 +1,125 @@
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+
+body {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 50%, #fef3c7 100%);
+    color: #4b3a2f;
+    min-height: 100vh;
+    overflow: hidden;
+}
+
+#app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+.topbar {
+    height: 60px;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(8px);
+    border-bottom: 2px solid #d4a574;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+.topbar .title { display: flex; align-items: center; gap: 8px; font-weight: bold; font-size: 18px; color: #6b4423; }
+.topbar .logo { font-size: 24px; }
+.topbar .status { display: flex; gap: 10px; }
+.pill { background: #fff8e1; border: 1px solid #d4a574; padding: 6px 12px; border-radius: 20px; font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 4px; }
+.pill .ico { font-size: 16px; }
+.pill.turn { background: #ffe082; }
+
+.layout { flex: 1; display: grid; grid-template-columns: 220px 1fr 320px; gap: 12px; padding: 12px; overflow: hidden; }
+
+aside.left, aside.right {
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid #d4a574;
+    border-radius: 10px;
+    padding: 12px;
+    overflow-y: auto;
+}
+
+aside.left h3, aside.right h3 {
+    font-size: 13px;
+    font-weight: bold;
+    color: #6b4423;
+    margin: 12px 0 6px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+aside.left h3:first-child { margin-top: 0; }
+
+.view-btn {
+    display: block;
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 4px;
+    background: #fff8e1;
+    border: 1px solid #d4a574;
+    border-radius: 6px;
+    cursor: pointer;
+    text-align: left;
+    font-size: 13px;
+}
+.view-btn:hover { background: #ffe082; }
+.view-btn.active { background: #ffd866; font-weight: bold; box-shadow: inset 0 0 0 2px #d4a574; }
+
+.legend { font-size: 12px; padding: 3px 0; display: flex; align-items: center; gap: 6px; }
+.legend .line { display: inline-block; width: 24px; height: 3px; border-radius: 2px; }
+.line.plane { background: #f59e0b; border-top: 1px dashed #f59e0b; height: 0; border-bottom: 0; }
+.line.ship  { background: #3b82f6; }
+.line.train { background: #92400e; border-top: 2px dotted #92400e; background: transparent; height: 0; }
+.line.truck { background: #6b7280; }
+.line.foot  { background: #10b981; border-top: 2px dashed #10b981; background: transparent; height: 0; }
+
+#city-list { font-size: 12px; }
+#city-list .city-item { padding: 4px 6px; cursor: pointer; border-radius: 4px; }
+#city-list .city-item:hover { background: #fef3c7; }
+#city-list .city-item.selected { background: #ffd866; font-weight: bold; }
+#city-list .city-item .level { float: right; color: #92400e; font-size: 10px; }
+
+section.center { position: relative; background: linear-gradient(180deg, #87ceeb 0%, #b3d9e8 60%, #c8e1ec 100%); border-radius: 10px; overflow: hidden; box-shadow: inset 0 0 30px rgba(0,0,0,0.1); }
+#map { display: block; width: 100%; height: 100%; cursor: pointer; }
+#hint { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.85); padding: 4px 12px; border-radius: 12px; font-size: 12px; color: #6b4423; }
+
+.planner {
+    background: #fff8e1;
+    border: 2px solid #d4a574;
+    border-radius: 10px;
+    padding: 10px;
+    margin-bottom: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+.planner.hidden { display: none; }
+.card-header { display: flex; justify-content: space-between; align-items: center; font-weight: bold; color: #6b4423; padding-bottom: 6px; border-bottom: 1px solid #d4a574; }
+.card-header button { background: none; border: none; font-size: 20px; cursor: pointer; color: #6b4423; }
+.card-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 12px; }
+.plan-row { display: flex; justify-content: space-between; padding: 8px; margin: 4px 0; background: #fff; border-radius: 6px; cursor: pointer; border: 1px solid #d4a574; font-size: 12px; }
+.plan-row:hover { background: #ffe082; }
+.plan-row.recommended { background: #d1fae5; border-color: #10b981; }
+.plan-row .meta { font-size: 11px; color: #6b7280; }
+.card-foot { display: flex; justify-content: space-between; padding: 6px 0; font-size: 11px; color: #6b7280; border-top: 1px solid #d4a574; margin-top: 6px; }
+
+.trip-log { background: #fff8e1; border: 1px solid #d4a574; border-radius: 10px; padding: 10px; max-height: 200px; overflow-y: auto; margin-bottom: 12px; }
+.trip-log ul { list-style: none; font-size: 11px; }
+.trip-log li { padding: 3px 0; border-bottom: 1px dashed #e5d4b1; }
+.trip-log li:last-child { border-bottom: none; }
+.trip-log li .turn-tag { color: #92400e; font-weight: bold; margin-right: 4px; }
+
+.actions { display: flex; gap: 6px; }
+.big-btn { flex: 1; padding: 10px; background: #f59e0b; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; }
+.big-btn:hover { background: #d97706; }
+#reset-btn { padding: 10px 14px; background: #fff; border: 1px solid #d4a574; border-radius: 8px; cursor: pointer; }
+
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 100; }
+.modal.hidden { display: none; }
+.modal-card { background: white; border-radius: 12px; padding: 20px; min-width: 400px; max-width: 500px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
+.modal-title { font-size: 18px; font-weight: bold; color: #6b4423; margin-bottom: 12px; }
+.modal-body { font-size: 14px; line-height: 1.6; padding: 8px 0; color: #4b3a2f; }
+.modal-actions { display: flex; gap: 8px; margin-top: 16px; }
+.modal-actions button { flex: 1; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+.modal-actions button.primary { background: #f59e0b; color: white; }
+.modal-actions button.secondary { background: #e5e7eb; color: #4b3a2f; }
+.modal-actions button:disabled { opacity: 0.4; cursor: not-allowed; }

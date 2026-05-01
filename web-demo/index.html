@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>小小特工 · 出行特工版 · S4 Playable Demo</title>
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div id="app">
+
+    <header class="topbar">
+        <div class="title">
+            <span class="logo">🛰️</span>
+            <span>小小特工 · 出行特工版 · S4 Demo</span>
+        </div>
+        <div class="status">
+            <div class="pill"><span class="ico">🪙</span><span id="stat-coin">5000</span></div>
+            <div class="pill"><span class="ico">🔍</span><span id="stat-clue">1200</span></div>
+            <div class="pill"><span class="ico">⭐</span><span id="stat-star">850</span></div>
+            <div class="pill"><span class="ico">⛽</span><span id="stat-fuel">200</span></div>
+            <div class="pill turn"><span class="ico">📅</span>Day <span id="stat-day">1</span> · Turn <span id="stat-turn">1</span></div>
+        </div>
+    </header>
+
+    <main class="layout">
+
+        <aside class="left">
+            <h3>Map Views</h3>
+            <button data-view="EXPLORER" class="view-btn">🌍 Explorer</button>
+            <button data-view="RESOURCE" class="view-btn">💎 Resource</button>
+            <button data-view="TEAM"     class="view-btn">👥 Team</button>
+            <button data-view="TRAVEL"   class="view-btn active">✈ ★ Travel</button>
+
+            <h3>载具图例</h3>
+            <div class="legend"><span class="line plane"></span>飞机 PLANE</div>
+            <div class="legend"><span class="line ship"></span>轮船 SHIP</div>
+            <div class="legend"><span class="line train"></span>火车 TRAIN</div>
+            <div class="legend"><span class="line truck"></span>卡车 TRUCK</div>
+            <div class="legend"><span class="line foot"></span>越野 FOOT</div>
+
+            <h3>City 列表</h3>
+            <div id="city-list"></div>
+        </aside>
+
+        <section class="center">
+            <canvas id="map" width="1100" height="600"></canvas>
+            <div id="hint">点击任意两个城市发起出行规划</div>
+        </section>
+
+        <aside class="right">
+            <div id="planner" class="planner hidden">
+                <div class="card-header">
+                    <span>★ 行程规划器 Trip Planner</span>
+                    <button id="planner-close">×</button>
+                </div>
+                <div class="card-row">
+                    <span>From: <b id="plan-from">-</b></span>
+                    <span>To: <b id="plan-to">-</b></span>
+                </div>
+                <div id="plan-list"></div>
+                <div class="card-foot">
+                    <span>燃料消耗: <b id="plan-fuel-cost">0</b></span>
+                    <span>队伍疲劳: <b id="plan-fatigue">+15</b></span>
+                </div>
+            </div>
+
+            <div id="trip-log" class="trip-log">
+                <h3>★ Trip Log</h3>
+                <ul id="log-list"></ul>
+            </div>
+
+            <div class="actions">
+                <button id="end-turn-btn" class="big-btn">End Turn ▶</button>
+                <button id="reset-btn">Reset</button>
+            </div>
+        </aside>
+    </main>
+
+    <div id="event-modal" class="modal hidden">
+        <div class="modal-card">
+            <div class="modal-title" id="event-title">路上事件</div>
+            <div class="modal-body" id="event-body"></div>
+            <div class="modal-actions" id="event-actions"></div>
+        </div>
+    </div>
+
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

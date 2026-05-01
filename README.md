@@ -62,11 +62,16 @@ map-game/
 │   ├── docker-compose.yml
 │   ├── README.md        # 启动说明
 │   └── src/main/java/com/mapgame/...
-└── client/              # 前端 Cocos Creator 3.8 工程
-    ├── package.json
-    ├── tsconfig.json
-    ├── README.md        # 接入 Cocos 编辑器说明
-    └── assets/scripts/  # api / core / world / travel / ui
+├── client/              # 前端 Cocos Creator 3.8 工程
+│   ├── package.json
+│   ├── tsconfig.json
+│   ├── README.md        # 接入 Cocos 编辑器说明
+│   └── assets/scripts/  # api / core / world / travel / ui
+└── web-demo/            # ★ S4 出行可玩 Demo (浏览器即开即玩)
+    ├── index.html
+    ├── style.css
+    ├── README.md        # python -m http.server 5500
+    └── js/              # data / planner / map / main
 ```
 
 ## 📑 文档目录
@@ -77,6 +82,7 @@ map-game/
 - [04 · 出行系统详细设计](docs/04-travel-system.md) — 多式联运、时刻表、路上事件、任务类型
 - [Server README](server/README.md) — 后端启动 + API 一览
 - [Client README](client/README.md) — 前端如何接入 Cocos Creator
+- [★ Web Demo README](web-demo/README.md) — 浏览器即开即玩, 演示 S4 出行全闭环
 
 ## 🗺️ 落地路线（MVP → 完整版）
 
@@ -103,7 +109,7 @@ map-game/
 - [x] 后端工程脚手架（Spring Boot 3 + S1 World 范例）
 - [x] 前端工程脚手架（Cocos Creator 3.8 + TypeScript）
 - [x] S2-S6 模块全量 DDL + 种子数据 + 30 项数值平衡
-- [ ] S4 出行可玩 Demo 集成
+- [x] S4 出行可玩 Demo 集成（Web Canvas 即开即玩）
 
 ## 🤝 协作
 
