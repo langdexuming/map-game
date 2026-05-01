@@ -38,7 +38,7 @@ gantt
 | **S2** | 特工/队伍实现图：类图 + Team 组件 UI + 后端 Agent CRUD 时序 | [docs/sprint/s2-agent-team.md](sprint/s2-agent-team.md) | ✅ 已交付 |
 | **S3** | 任务系统实现图：任务状态机 + Mission 类图 + 接取/结算时序 | [docs/sprint/s3-mission.md](sprint/s3-mission.md) | ✅ 已交付 |
 | **S4 ★** | 出行系统实现图：Dijkstra 流程 + Trip 完整生命周期 + 路上事件流程 + 三视图切换 | [docs/sprint/s4-travel.md](sprint/s4-travel.md) | ✅ 已交付 |
-| **S5** | 建造研究实现图：科技树数据结构 + 建造成本 + 解锁规则 | docs/sprint/s5-build-research.md | ⬜ 待画 |
+| **S5** | 建造研究实现图：科技树数据结构 + 建造成本 + 解锁规则 | [docs/sprint/s5-build-research.md](sprint/s5-build-research.md) | ✅ 已交付 |
 | **S6** | 事件/平衡实现图：事件触发 DSL + 数值平衡表 | docs/sprint/s6-event-balance.md | ⬜ 待画 |
 
 ---
