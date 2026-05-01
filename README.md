@@ -47,12 +47,30 @@
 | 部署 | Docker + Kubernetes + Nginx |
 | 配置 | Nacos |
 
-## 📂 文档目录
+## 📂 项目结构
+
+```text
+map-game/
+├── docs/                # 设计文档（已交付）
+│   ├── 01-solution-design.md
+│   ├── 02-requirement-prototype.md
+│   ├── 03-roadmap.md
+│   ├── 04-travel-system.md
+│   └── sprint/          # S1-S6 每步实现图
+└── server/              # 后端 Spring Boot 3 工程
+    ├── pom.xml
+    ├── docker-compose.yml
+    ├── README.md        # 启动说明
+    └── src/main/java/com/mapgame/...
+```
+
+## 📑 文档目录
 
 - [01 · 方案设计](docs/01-solution-design.md) — 总体架构、模块依赖、技术栈、ER 图、状态机、关键时序图
 - [02 · 需求原型](docs/02-requirement-prototype.md) — 用例图、用户旅程、信息架构、UI 线框稿、需求清单
-- [03 · 落地路线图](docs/03-roadmap.md) — 6 个 Sprint 的每步实现图清单
+- [03 · 落地路线图](docs/03-roadmap.md) — 6 个 Sprint 的每步实现图清单（全部✅）
 - [04 · 出行系统详细设计](docs/04-travel-system.md) — 多式联运、时刻表、路上事件、任务类型
+- [Server README](server/README.md) — 后端启动 + API 一览
 
 ## 🗺️ 落地路线（MVP → 完整版）
 
@@ -76,7 +94,10 @@
 - [x] S4 出行系统实现图（重点）
 - [x] S5 建造研究实现图
 - [x] S6 事件平衡实现图
-- [ ] 工程脚手架（前后端）
+- [x] 后端工程脚手架（Spring Boot 3 + S1 World 范例）
+- [ ] 前端工程脚手架（Cocos Creator）
+- [ ] S2-S6 模块全量 DDL + 种子数据
+- [ ] S4 出行可玩 Demo 集成
 
 ## 🤝 协作
 
