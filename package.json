@@ -1,0 +1,14 @@
+{
+  "name": "map-game",
+  "private": true,
+  "description": "小小特工 · 出行特工版 — 仓库根工作区（Web 前端见 web/）",
+  "workspaces": [
+    "web"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev -w map-game-web",
+    "build:web": "npm run build -w map-game-web",
+    "preview:web": "npm run preview -w map-game-web",
+    "lint:web": "npm run lint -w map-game-web"
+  }
+}

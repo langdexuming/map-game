@@ -20,4 +20,7 @@ public class WorldVO {
 
     @Schema(description = "当前回合数")
     private Integer turnNo;
+
+    @Schema(description = "主基地等级 1-5")
+    private Integer hqLevel;
 }

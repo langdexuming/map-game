@@ -21,6 +21,10 @@ hs_err_pid*
 .gradle/
 out/
 
+# ============ SQLite (本地 dev) ============
+server/data/*.db
+server/data/*.db-*
+
 # ============ Node / TS ============
 node_modules/
 dist/

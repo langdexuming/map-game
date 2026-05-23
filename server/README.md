@@ -2,6 +2,8 @@
 
 > 小小特工 · 出行特工版 · Spring Boot 3 后端脚手架
 
+**说明（当前仓库策略）**：本目录为 **后续再实现** 的 Spring Boot 工程落点；设计文档、DDL 迁移脚本与范例代码会保留，便于与 `web/`、`client/` 对齐后再逐步开发。**当前不强制启动后端**；需要联调时再按下方文档起服务。
+
 ## 技术栈
 
 - JDK 17 + Spring Boot 3.2.5
@@ -9,7 +11,8 @@
 - Springdoc OpenAPI 2.3.0（替代 Swagger 2，使用 `@Schema` 等价 `@ApiModelProperty`）
 - Aviator 5（事件 DSL 引擎）
 - Hutool 5.8（工具）
-- MySQL 8 / Redis 7 / RabbitMQ 3
+- 默认 **SQLite** 本地文件库（`dev` 配置，零 Docker 即可跑通 API）
+- 可选 **MySQL 8** + Redis + RabbitMQ（`mysql` 配置 + `docker compose`）
 - Lombok
 
 ## 工程结构
@@ -36,14 +39,11 @@ server/
     │           └── enums/
     └── resources/
         ├── application.yml
-        ├── application-dev.yml
+        ├── application-dev.yml            # SQLite + Flyway（默认 profile）
+        ├── application-mysql.yml          # MySQL + Redis + RabbitMQ
         └── db/migration/
-            ├── V1__init_world.sql           # S1 世界/大陆/城市
-            ├── V2__init_agent_team.sql      # S2 玩家/特工/队伍
-            ├── V3__init_mission.sql         # S3 任务模板/进度/日志
-            ├── V4__init_travel.sql          # S4 路径/班次/行程/事件 ★
-            ├── V5__init_build_research.sql  # S5 建筑/科技16节点/兵种/贸易
-            └── V6__init_event_balance.sql   # S6 事件模板 + 30项数值平衡
+            ├── sqlite/                    # Flyway：本地 SQLite 脚本
+            └── mysql/                     # Flyway / Docker MySQL 初始化脚本
 ```
 
 ## 团队 Java 规范对齐
@@ -60,22 +60,31 @@ server/
 
 ## 本地启动
 
-### 1. 启动中间件
+### 方式 A：SQLite（默认，推荐本机开发）
+
+无需 MySQL/Redis/RabbitMQ。数据库文件：`server/data/map-game.db`（已加入 `.gitignore`）。
+
+```bash
+cd server
+mvn spring-boot:run
+```
+
+首次启动时 **Flyway** 会执行 `classpath:db/migration/sqlite` 下脚本并写入种子数据。
+
+### 方式 B：MySQL + 中间件（与线上一致）
 
 ```bash
 cd server
 docker compose up -d
 ```
 
-启动后会自动执行 `db/migration/V1__init_world.sql` 初始化数据库和种子数据。
-
-### 2. 启动应用
+Compose 会将 `db/migration/mysql` 挂载到 MySQL 容器初始化目录。
 
 ```bash
-mvn spring-boot:run
+mvn spring-boot:run -Dspring-boot.run.profiles=mysql
 # 或
 mvn package -DskipTests
-java -jar target/map-game-server.jar
+java -jar -Dspring.profiles.active=mysql target/map-game-server.jar
 ```
 
 ### 3. 验证

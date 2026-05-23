@@ -15,7 +15,7 @@ services:
       - --default-authentication-plugin=mysql_native_password
     volumes:
       - mapgame_mysql:/var/lib/mysql
-      - ./src/main/resources/db/migration:/docker-entrypoint-initdb.d:ro
+      - ./src/main/resources/db/migration/mysql:/docker-entrypoint-initdb.d:ro
 
   redis:
     image: redis:7-alpine

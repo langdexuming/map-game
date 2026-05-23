@@ -23,5 +23,10 @@ public class World {
 
     private Integer turnNo;
 
+    /**
+     * 主基地等级 1-5
+     */
+    private Integer hqLevel;
+
     private LocalDateTime createdAt;
 }

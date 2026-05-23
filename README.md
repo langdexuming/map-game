@@ -39,13 +39,16 @@
 
 | 层 | 选型 |
 |---|---|
-| 客户端 | Cocos Creator 3.8 + TypeScript 5 |
-| 后端 | Spring Boot 3.2 + MyBatis-Plus + Lombok + Swagger3 |
-| 调度 | Quartz / XXL-Job |
-| 存储 | MySQL 8 / Redis 7 |
-| 通信 | RabbitMQ + WebSocket |
+| 客户端 | Cocos Creator 3.8 + TypeScript 5（主游戏） |
+| Web UI | React 19 + Vite 6 + Tailwind 4（`web/`，浏览器指挥终端） |
+| 后端 | Spring Boot 3.2 + MyBatis-Plus 等（**`server/` 暂缓实现**，见下文） |
+| 调度 | Quartz / XXL-Job（规划中） |
+| 存储 | MySQL 8 / Redis 7（规划中） |
+| 通信 | RabbitMQ + WebSocket（规划中） |
 | 部署 | Docker + Kubernetes + Nginx |
 | 配置 | Nacos |
+
+> **当前阶段**：以 **`web/` 指挥终端** 与文档/原型为主；**Spring Boot 后端业务与接口落地后续再做**。`server/` 内保留脚手架与设计对齐的 SQL，便于日后接续开发。
 
 ## 📂 项目结构
 
@@ -57,7 +60,7 @@ map-game/
 │   ├── 03-roadmap.md
 │   ├── 04-travel-system.md
 │   └── sprint/          # S1-S6 每步实现图
-├── server/              # 后端 Spring Boot 3 工程
+├── server/              # Spring Boot 3 工程（暂缓实现，保留脚手架与迁移脚本）
 │   ├── pom.xml
 │   ├── docker-compose.yml
 │   ├── README.md        # 启动说明
@@ -67,7 +70,14 @@ map-game/
 │   ├── tsconfig.json
 │   ├── README.md        # 接入 Cocos 编辑器说明
 │   └── assets/scripts/  # api / core / world / travel / ui
-└── web-demo/            # ★ S4 出行可玩 Demo (浏览器即开即玩)
+├── web/                 # ★ Web 前端（React + Vite + Tailwind）
+│   ├── package.json     # workspace 名：map-game-web
+│   ├── vite.config.ts   # 开发代理 /api → 后端 8080
+│   └── src/             # App、API、样式
+├── package.json         # 根工作区：npm run dev:web / build:web
+├── deploy/
+│   └── nginx-map-game-9001.conf  # Homebrew nginx 引用：HTTP 9001 + /api 反代 8080
+└── web-demo/            # S4 出行 Canvas Demo（原生 HTML，可选对照）
     ├── index.html
     ├── style.css
     ├── README.md        # python -m http.server 5500
@@ -80,10 +90,12 @@ map-game/
 - [02 · 需求原型](docs/02-requirement-prototype.md) — 用例图、用户旅程、信息架构、UI 线框稿、需求清单
 - [03 · 落地路线图](docs/03-roadmap.md) — 6 个 Sprint 的每步实现图清单（全部✅）
 - [04 · 出行系统详细设计](docs/04-travel-system.md) — 多式联运、时刻表、路上事件、任务类型
-- [Server README](server/README.md) — 后端启动 + API 一览
+- [Server README](server/README.md) — 后端目录说明（**启动与完整 API 后续实现**）
 - [Client README](client/README.md) — 前端如何接入 Cocos Creator
-- [★ Web Demo README](web-demo/README.md) — 浏览器即开即玩, 演示 S4 出行全闭环
+- [★ Web Demo README](web-demo/README.md) — 旧版 Canvas 演示（可选）
   - **`web-demo/standalone.html`** — 单文件版, **双击即开**, 无需服务器
+- **Web 高保真 UI**：在仓库根执行 `npm install` 后 `npm run dev:web`，默认 <http://localhost:3000>；`/api` 代理至 `http://127.0.0.1:8080`（**后端未启动时页面会显示加载失败**，属预期）
+- **本机 Nginx（9001）**：`npm run build:web` 后，`include` 见 `deploy/nginx-map-game-9001.conf`；**反代 `/api` 依赖后端就绪后**再联调；`nginx -t && nginx -s reload`
 
 ## 🗺️ 落地路线（MVP → 完整版）
 
@@ -107,10 +119,11 @@ map-game/
 - [x] S4 出行系统实现图（重点）
 - [x] S5 建造研究实现图
 - [x] S6 事件平衡实现图
-- [x] 后端工程脚手架（Spring Boot 3 + S1 World 范例）
+- [ ] Spring Boot 后端业务与接口（**后续实现**；`server/` 脚手架已保留）
 - [x] 前端工程脚手架（Cocos Creator 3.8 + TypeScript）
 - [x] S2-S6 模块全量 DDL + 种子数据 + 30 项数值平衡
 - [x] S4 出行可玩 Demo 集成（Web Canvas 即开即玩）
+- [x] React + Vite Web UI 纳入根 npm workspace（`web/` / `map-game-web`）
 
 ## 🤝 协作
 
