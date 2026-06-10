@@ -2,8 +2,9 @@ import {X} from 'lucide-react';
 import type {GameSession} from '../state/useGameSession';
 import {cityLabel} from '../state/derive';
 import {VEHICLE_ICON} from '../game/mockData';
-import {VEHICLE_PNG} from '../game/popupAssets';
+import {VEHICLE_PNG, POPUP_ASSET} from '../game/popupAssets';
 import {formatStr} from '../i18n/strings';
+import {Ribbon} from './Ribbon';
 
 interface Props {
   session: GameSession;
@@ -15,17 +16,24 @@ export function PlannerBar({session}: Props) {
 
   return (
     <div className="fixed bottom-3 left-1/2 z-30 pointer-events-auto w-[min(1100px,calc(100vw-32px))] anim-slide-up">
-      <div className="floating-card p-3">
-        <div className="flex items-center justify-between gap-3 mb-3">
-          <div className="flex items-center gap-2 text-[12px]">
-            <span className="panel-title">{t.plannerTitle}</span>
-            <span className="font-bold text-emerald-700">{cityLabel(travelFrom)}</span>
-            <span className="opacity-50">→</span>
-            <span className="font-bold text-rose-700">{cityLabel(travelTo)}</span>
-          </div>
-          <button type="button" onClick={() => resetTravelSelection()} className="game-button !p-1.5" aria-label="close">
-            <X size={14} />
-          </button>
+      <div className="floating-card p-3 pt-8 relative">
+        <Ribbon
+          src={POPUP_ASSET.ribbonPlanner}
+          title={t.plannerTitle}
+          className="absolute left-1/2 -top-8 -translate-x-1/2 w-[55%] max-w-[360px] z-10 pointer-events-none drop-shadow-[0_4px_10px_rgba(0,0,0,0.45)]"
+        />
+        <button
+          type="button"
+          onClick={() => resetTravelSelection()}
+          className="game-button !p-1.5 absolute top-2 right-2 z-20"
+          aria-label="close"
+        >
+          <X size={14} />
+        </button>
+        <div className="flex items-center justify-center gap-2 text-[12px] mb-3 pt-1">
+          <span className="font-bold text-emerald-700">{cityLabel(travelFrom)}</span>
+          <span className="opacity-50">→</span>
+          <span className="font-bold text-rose-700">{cityLabel(travelTo)}</span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {plannerPlans.map((plan, idx) => (

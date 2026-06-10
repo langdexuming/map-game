@@ -1,8 +1,9 @@
-import {Loader2, Lock, Unlock} from 'lucide-react';
+import {Loader2} from 'lucide-react';
 import type {GameSession} from '../state/useGameSession';
 import {clamp} from '../map/draw';
-import {cityLabel} from '../state/derive';
+import {cityLabel, effectiveCityLevel} from '../state/derive';
 import {formatStr} from '../i18n/strings';
+import {POPUP_ASSET} from '../game/popupAssets';
 
 interface Props {
   session: GameSession;
@@ -24,6 +25,7 @@ export function MapCanvas({session, onCityClick}: Props) {
     travelFromId,
     travelToId,
     mapBackdropStyle,
+    cityLevels,
   } = session;
 
   return (
@@ -57,15 +59,16 @@ export function MapCanvas({session, onCityClick}: Props) {
             d={route.path}
             fill="none"
             stroke={route.color}
-            strokeWidth="0.45"
+            strokeWidth="0.7"
+            strokeLinecap="round"
             strokeDasharray={route.dash}
-            strokeOpacity="0.75"
+            strokeOpacity="0.92"
             style={route.dash ? {animation: 'anim-route-dash 1.6s linear infinite'} : undefined}
           />
         ))}
 
         {highlightedTripSegments.map((seg) => (
-          <path key={seg.key} d={seg.path} fill="none" stroke={seg.color} strokeWidth="0.9" />
+          <path key={seg.key} d={seg.path} fill="none" stroke={seg.color} strokeWidth="1.2" strokeLinecap="round" />
         ))}
       </svg>
 
@@ -76,9 +79,7 @@ export function MapCanvas({session, onCityClick}: Props) {
               className={`absolute pointer-events-none -translate-x-1/2 -translate-y-1/2 anim-fade anim-stagger-${(idx % 3) + 1}`}
               style={{left: `${marker.left}%`, top: `${marker.top}%`}}
             >
-              <span className="text-[13px] font-black text-amber-200/12 tracking-widest whitespace-nowrap uppercase">
-                {marker.name}
-              </span>
+              <span className="region-label">{marker.name}</span>
             </div>
           ))
         : null}
@@ -89,33 +90,35 @@ export function MapCanvas({session, onCityClick}: Props) {
             const active = selectedCityId === city.id;
             const asStart = travelFromId === city.id;
             const asEnd = travelToId === city.id;
+            const pinSrc = city.unlocked ? POPUP_ASSET.pinUnlocked : POPUP_ASSET.pinLocked;
+            const lv = effectiveCityLevel(city, cityLevels);
             return (
               <button
                 key={city.id}
                 type="button"
-                className="absolute z-20 -translate-x-1/2 -translate-y-1/2 focus:outline-none focus:ring-2 focus:ring-amber-400 rounded-full"
+                className="absolute z-20 -translate-x-1/2 -translate-y-1/2 focus:outline-none focus:ring-2 focus:ring-amber-400 rounded-full city-pin-btn"
                 style={{left: `${point.xPct}%`, top: `${point.yPct}%`}}
                 onClick={() => onCityClick(city.id, point)}
                 title={cityLabel(city)}
               >
                 <span
-                  className={`flex items-center justify-center w-9 h-9 rounded-full border-[3px] border-amber-50 shadow-xl transition-transform duration-200 hover:scale-110 ${
-                    active ? 'bg-amber-400 text-stone-900 ring-4 ring-amber-300/40 anim-pulse-ring' : 'bg-stone-800/95 text-amber-100'
-                  } ${asStart ? 'ring-4 ring-emerald-400/50' : ''} ${asEnd ? 'ring-4 ring-rose-400/50' : ''} ${
-                    city.unlocked ? '' : 'opacity-60'
-                  }`}
+                  className={`city-pin-wrap ${active ? 'is-active anim-pulse-ring' : ''} ${
+                    asStart ? 'is-start' : ''
+                  } ${asEnd ? 'is-end' : ''} ${city.unlocked ? '' : 'is-locked'}`}
                 >
-                  {city.unlocked ? <Unlock size={16} /> : <Lock size={16} />}
+                  <img
+                    src={pinSrc}
+                    alt=""
+                    aria-hidden
+                    className="city-pin-img"
+                    draggable={false}
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                  {city.unlocked ? <span className="city-pin-level">{lv}</span> : null}
                 </span>
-                <span
-                  className={`mt-1 block text-center text-[10px] font-black px-2 py-0.5 rounded-md shadow whitespace-nowrap max-w-[140px] truncate mx-auto backdrop-blur-sm ${
-                    active
-                      ? 'bg-amber-400 text-stone-900'
-                      : 'bg-black/60 text-amber-100 border border-amber-300/30'
-                  }`}
-                >
-                  {cityLabel(city)}
-                </span>
+                <span className={`city-pin-label ${active ? 'is-active' : ''}`}>{cityLabel(city)}</span>
               </button>
             );
           })
@@ -137,6 +140,17 @@ export function MapCanvas({session, onCityClick}: Props) {
             </div>
           ))
         : null}
+
+      <img
+        src={POPUP_ASSET.eventEmblem}
+        alt=""
+        aria-hidden
+        className="map-corner-stamp"
+        draggable={false}
+        onError={(e) => {
+          e.currentTarget.style.display = 'none';
+        }}
+      />
     </div>
   );
 }

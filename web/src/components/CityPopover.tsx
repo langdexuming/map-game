@@ -3,6 +3,7 @@ import type {GameSession} from '../state/useGameSession';
 import {cityLabel, cityUpgradeMaterials, effectiveCityLevel, levelLabel} from '../state/derive';
 import {formatStr} from '../i18n/strings';
 import {POPUP_ASSET} from '../game/popupAssets';
+import {Ribbon} from './Ribbon';
 
 interface Props {
   session: GameSession;
@@ -33,15 +34,33 @@ export function CityPopover({session, anchor, onClose, onSetStart, onSetEnd}: Pr
         bottom: verticallyAbove ? `calc(${100 - anchor.yPct}% + 50px)` : undefined,
       }}
     >
-      <div className={`floating-card w-[280px] p-3 space-y-2 text-[#4a3f35] anim-scale-in ${verticallyAbove ? 'origin-bottom' : 'origin-top'}`}>
-        <div className="flex items-start justify-between gap-2">
-          <div>
-            <div className="text-sm font-black">{cityLabel(selectedCity)}</div>
-            <div className="text-[10px] opacity-70">{regionNameByCityId.get(selectedCity.id) ?? t.emDash}</div>
-          </div>
-          <button type="button" onClick={onClose} className="game-button !p-1" aria-label="close">
-            <X size={14} />
-          </button>
+      <div className={`floating-card w-[280px] p-3 pt-7 space-y-2 text-[#4a3f35] anim-scale-in relative ${verticallyAbove ? 'origin-bottom' : 'origin-top'}`}>
+        <Ribbon
+          src={POPUP_ASSET.ribbonCity}
+          title={cityLabel(selectedCity)}
+          className="absolute left-1/2 -top-7 -translate-x-1/2 w-[85%] z-10 pointer-events-none drop-shadow-[0_4px_8px_rgba(0,0,0,0.45)]"
+        />
+        <button
+          type="button"
+          onClick={onClose}
+          className="game-button !p-1 absolute top-2 right-2 z-20"
+          aria-label="close"
+        >
+          <X size={12} />
+        </button>
+
+        <div className="flex items-center gap-2">
+          <img
+            src={lv >= 4 ? POPUP_ASSET.iconHq : selectedCity.unlocked ? POPUP_ASSET.pinUnlocked : POPUP_ASSET.pinLocked}
+            alt=""
+            aria-hidden
+            className="w-9 h-9 select-none shrink-0"
+            draggable={false}
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
+          />
+          <div className="text-[10px] opacity-70 truncate">{regionNameByCityId.get(selectedCity.id) ?? t.emDash}</div>
         </div>
 
         <div className="flex flex-wrap gap-1.5 text-[10px]">

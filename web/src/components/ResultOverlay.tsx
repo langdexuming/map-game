@@ -1,5 +1,6 @@
 import type {GameSession} from '../state/useGameSession';
 import {POPUP_ASSET} from '../game/popupAssets';
+import {Ribbon} from './Ribbon';
 
 interface Props {
   session: GameSession;
@@ -11,6 +12,8 @@ export function ResultOverlay({session}: Props) {
 
   const win = missionStats.goalMet;
   const decor = win ? POPUP_ASSET.victoryLaurel : POPUP_ASSET.defeatSeal;
+  const ribbonSrc = win ? POPUP_ASSET.ribbonVictory : POPUP_ASSET.ribbonDefeat;
+  const ribbonTitle = win ? t.runVictory : t.runDefeat;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-sm p-4 anim-fade">
@@ -24,10 +27,12 @@ export function ResultOverlay({session}: Props) {
             e.currentTarget.style.display = 'none';
           }}
         />
-        <div className="pt-16">
-          <h2 className={`text-4xl font-black anim-scale-in anim-stagger-2 ${win ? 'text-emerald-700' : 'text-rose-700'}`}>
-            {win ? t.runVictory : t.runDefeat}
-          </h2>
+        <div className="pt-16 flex flex-col items-center">
+          <Ribbon
+            src={ribbonSrc}
+            title={ribbonTitle}
+            className="w-[78%] max-w-[300px] anim-scale-in anim-stagger-2 drop-shadow-[0_4px_10px_rgba(0,0,0,0.45)]"
+          />
         </div>
         <div className="text-[12px] space-y-1 text-[#4a3f35]">
           <div>

@@ -1,9 +1,10 @@
-import {Coins, Compass, Droplet, Loader2, RefreshCw, Sparkles, Star, StepForward, Map as MapIcon} from 'lucide-react';
+import {Compass, Loader2, RefreshCw, StepForward, Map as MapIcon} from 'lucide-react';
 import {useEffect, useRef, useState, type ReactNode} from 'react';
 import type {MapViewType} from '../api/types';
 import type {GameSession} from '../state/useGameSession';
 import {displayWorldName} from '../i18n/zhDisplay';
 import {formatStr, type Strings} from '../i18n/strings';
+import {POPUP_ASSET} from '../game/popupAssets';
 
 interface Props {
   session: GameSession;
@@ -43,11 +44,15 @@ export function TopHud({session}: Props) {
     return () => clearTimeout(tid);
   }, [resources.coin, resources.clue, resources.star, resources.fuel]);
 
+  const resIcon = (src: string, alt: string): ReactNode => (
+    <img src={src} alt={alt} aria-hidden className="hud-icon-img" draggable={false} />
+  );
+
   const resources_: {icon: ReactNode; value: string | number; label: string; tint: string; bumpKey: BumpKey}[] = [
-    {icon: <Coins size={14} />, value: resources.coin, label: t.labelCoins, tint: 'text-amber-200', bumpKey: 'coin'},
-    {icon: <Sparkles size={14} />, value: resources.clue, label: t.labelClues, tint: 'text-sky-200', bumpKey: 'clue'},
-    {icon: <Star size={14} />, value: resources.star, label: t.labelStars, tint: 'text-violet-200', bumpKey: 'star'},
-    {icon: <Droplet size={14} />, value: `${resources.fuel}/${fuelCap}`, label: t.fuel, tint: 'text-emerald-200', bumpKey: 'fuel'},
+    {icon: resIcon(POPUP_ASSET.iconCoin, 'coin'), value: resources.coin, label: t.labelCoins, tint: 'text-amber-200', bumpKey: 'coin'},
+    {icon: resIcon(POPUP_ASSET.iconClue, 'clue'), value: resources.clue, label: t.labelClues, tint: 'text-sky-200', bumpKey: 'clue'},
+    {icon: resIcon(POPUP_ASSET.iconStar, 'star'), value: resources.star, label: t.labelStars, tint: 'text-violet-200', bumpKey: 'star'},
+    {icon: resIcon(POPUP_ASSET.iconFuel, 'fuel'), value: `${resources.fuel}/${fuelCap}`, label: t.fuel, tint: 'text-emerald-200', bumpKey: 'fuel'},
   ];
 
   return (
@@ -70,7 +75,7 @@ export function TopHud({session}: Props) {
           const bumpClass = bump[card.bumpKey] === 'up' ? 'anim-bump-up' : bump[card.bumpKey] === 'down' ? 'anim-bump-down' : '';
           return (
             <div key={card.label} className="hud-chip" title={card.label}>
-              <span className={card.tint}>{card.icon}</span>
+              <span className={`${card.tint} inline-flex items-center justify-center`}>{card.icon}</span>
               <span className={`text-amber-50 inline-block ${bumpClass}`}>{card.value}</span>
             </div>
           );

@@ -26,6 +26,20 @@ export const POPUP_ASSET = {
 
   // 行程规划
   ticketFrame: `${BASE}/ticket-frame.png`,
+
+  // 资源 chip 图标
+  iconCoin: `${BASE}/icon-coin.png`,
+  iconClue: `${BASE}/icon-clue.png`,
+  iconStar: `${BASE}/icon-star.png`,
+  iconFuel: `${BASE}/icon-fuel.png`,
+  iconHq: `${BASE}/icon-hq.png`,
+
+  // 弹窗标题丝带（PNG 无文字，HTML 叠 i18n 标题）
+  ribbonEvent: `${BASE}/ribbon-event.png`,
+  ribbonVictory: `${BASE}/ribbon-victory.png`,
+  ribbonDefeat: `${BASE}/ribbon-defeat.png`,
+  ribbonCity: `${BASE}/ribbon-city.png`,
+  ribbonPlanner: `${BASE}/ribbon-planner.png`,
 } as const;
 
 export const VEHICLE_PNG: Partial<Record<VehicleType, string>> = {
