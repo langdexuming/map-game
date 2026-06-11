@@ -13,6 +13,10 @@ export class HttpClient {
         HttpClient.baseUrl = url;
     }
 
+    static getBaseUrl(): string {
+        return HttpClient.baseUrl;
+    }
+
     /**
      * GET 请求
      * @param path 不含 baseUrl 的相对路径

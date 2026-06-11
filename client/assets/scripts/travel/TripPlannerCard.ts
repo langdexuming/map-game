@@ -58,6 +58,8 @@ export class TripPlannerCard extends Component {
                 fromCityId: this.fromCityId,
                 toCityId: this.toCityId,
                 teamId: 1,
+                playerId: 1,
+                worldId: 1,
                 preference: 1,
             });
             this.fromLabel.string = `${GameStore.findCity(this.fromCityId)?.name ?? this.fromCityId}`;

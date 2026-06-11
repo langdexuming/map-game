@@ -42,6 +42,7 @@ export const EVT = {
     MISSION_ACCEPTED: 'mission-accepted',
     MISSION_COMPLETED: 'mission-completed',
     TRIP_BOOKED: 'trip-booked',
+    TEAM_CHANGED: 'team-changed',
     TRIP_EVENT: 'trip-event',
     TRIP_ARRIVED: 'trip-arrived',
     EVENT_POP: 'event-pop',

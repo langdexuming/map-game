@@ -15,7 +15,10 @@ client/
         │   ├── types.ts           # VO/Query TS 类型 (与 server 同步)
         │   ├── HttpClient.ts      # 统一 fetch 封装 + BizError
         │   ├── WorldApi.ts        # S1 World 接口
-        │   └── TravelApi.ts       # S4 Travel 接口 (占位)
+        │   ├── AgentApi.ts        # S2 特工接口
+        │   ├── PassportApi.ts     # 护照接口
+        │   ├── TravelApi.ts       # S4 Travel 接口
+        │   └── TripEventSocket.ts # 路上事件 WebSocket
         ├── core/                  # 框架层
         │   ├── EventBus.ts        # 全局事件总线
         │   ├── GameStore.ts       # 全局游戏状态
@@ -32,9 +35,12 @@ client/
         │       ├── TeamRenderer.ts
         │       └── TravelRenderer.ts   ★ 5 类航线着色
         ├── travel/                # ★ S4 出行
-        │   └── TripPlannerCard.ts
+        │   ├── TripPlannerCard.ts
+        │   └── TripEventDialog.ts
         └── ui/
-            └── TopStatusBar.ts
+            ├── TopStatusBar.ts
+            ├── LeftTeamPanel.ts
+            └── PassportPanel.ts
 ```
 
 ## 如何接入 Cocos Creator 3.8
@@ -74,8 +80,11 @@ client/
 ## 待实现 (按 Sprint 推进)
 
 - [x] S1 WorldScene + MapLayer + NodeSprite + ViewSwitcher
-- [x] S4 TripPlannerCard 占位
-- [ ] S2 LeftTeamPanel + TeamUpDialog
+- [x] S4 TripPlannerCard + TravelApi 联调
+- [x] S2 LeftTeamPanel（AgentApi 拉取队伍）
+- [x] 护照 PassportPanel + PassportApi
+- [x] TripEventSocket + TripEventDialog（路上事件 WS）
+- [ ] S2 TeamUpDialog
 - [ ] S3 MissionBriefsPanel + MissionLogPanel
 - [ ] S4 ScheduleClock + TripEventDialog + 飞机贝塞尔动画
 - [ ] S5 BuildMenu + ResearchTreeView

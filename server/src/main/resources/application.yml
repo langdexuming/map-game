@@ -42,6 +42,7 @@ game:
     ship-price-factor: 0.8
     train-price-factor: 1.0
     event-rate: 0.25
+    force-depart-event-rate: 0.35
     peak-price-rate: 1.3
     early-book-discount: 0.8
     refund-fee-rate: 0.3
@@ -54,6 +55,13 @@ game:
   redis:
     ttl-team-stats: 60
     ttl-tech-tree: 3600
+  agent:
+    rest-fatigue-per-turn: 30
+    rest-coin-cost: 10
+  passport:
+    global-discount: 0.1
+    mileage-golden: 2000
+    stamp-global: 5
 
 logging:
   level:
