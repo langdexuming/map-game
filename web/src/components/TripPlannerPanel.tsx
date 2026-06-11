@@ -104,7 +104,10 @@ export function TripPlannerPanel({session}: Props) {
           {bookingPreview ? (
             <div className="budget-bar">
               <span className={bookingPreview.canAffordFuel ? '' : 'is-danger'}>{t.planFuel} -{bookingPreview.fuel}</span>
-              <span className={bookingPreview.fatigueBlocked ? 'is-danger' : ''}>{t.planFatigue} +{bookingPreview.fatigue}</span>
+              <span className={bookingPreview.fatigueBlocked ? 'is-danger' : ''}>
+                {t.planFatigue} +{bookingPreview.fatigue}
+                {bookingPreview.fatigueHint ? ` (${bookingPreview.fatigueHint})` : ''}
+              </span>
               <span className={bookingPreview.canAffordCoin ? '' : 'is-danger'}>
                 {formatStr(t.priceCoins, {n: bookingPreview.price})}
               </span>

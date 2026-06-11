@@ -14,7 +14,7 @@ function statusPillClass(status: 'OPEN' | 'COMPLETED' | 'FAILED'): string {
 }
 
 export function MissionsPanel({session}: Props) {
-  const {t, missions, citiesForMap, missionRuntimePreview, resources, focusMissionRoute, highlightMissionId} = session;
+  const {t, missions, citiesForMap, missionRuntimePreview, resources, focusMissionRoute, highlightMissionId, missionProgressById, trackedMissionId} = session;
   if (missions.length === 0) {
     return <p className="text-[11px] opacity-75">{t.missionEmpty}</p>;
   }
@@ -34,7 +34,8 @@ export function MissionsPanel({session}: Props) {
             : [];
         const statusLabel =
           mission.status === 'COMPLETED' ? t.missionDone : mission.status === 'FAILED' ? t.missionFailed : t.missionOpen;
-        const highlighted = highlightMissionId === mission.id;
+        const highlighted = highlightMissionId === mission.id || trackedMissionId === mission.id;
+        const progress = missionProgressById.get(mission.id);
         return (
           <div key={mission.id} className={`game-inset p-3 space-y-2 ${highlighted ? 'ring-2 ring-[#f5d04c]' : ''}`}>
             <div className="flex items-start justify-between gap-2">
@@ -49,6 +50,12 @@ export function MissionsPanel({session}: Props) {
             <div className="text-[10px] font-mono opacity-80">
               {points.from ? cityLabel(points.from) : t.emDash} → {points.to ? cityLabel(points.to) : t.emDash}
             </div>
+            {progress ? (
+              <div className="mission-progress-bar">
+                <div className="xp-bar"><div className="xp-fill" style={{width: `${Math.round((progress.elapsed / Math.max(1, progress.total)) * 100)}%`}} /></div>
+                <span className="text-[10px] font-bold">{formatStr(t.missionProgressLabel, {elapsed: progress.elapsed, total: progress.total})}</span>
+              </div>
+            ) : null}
             {mission.status === 'OPEN' ? (
               <button type="button" className="game-button-primary w-full text-[11px]" onClick={() => focusMissionRoute(mission.id)}>
                 {t.viewMissionRoute}

@@ -8,7 +8,7 @@ interface Props {
 }
 
 export function RightSidebar({session}: Props) {
-  const {t, logs, travelNews, researchProgress, missions, citiesForMap, focusMissionRoute} = session;
+  const {t, logs, travelNews, researchProgress, missions, citiesForMap, focusMissionRoute, missionProgressById} = session;
 
   const openMission = missions.find((mission) => mission.status === 'OPEN');
 
@@ -34,6 +34,18 @@ export function RightSidebar({session}: Props) {
                 return `${points.from ? cityLabel(points.from) : t.emDash} → ${points.to ? cityLabel(points.to) : t.emDash}`;
               })()}
             </div>
+            {(() => {
+              const progress = missionProgressById.get(openMission.id);
+              if (!progress) {
+                return null;
+              }
+              return (
+                <div className="mission-progress-bar">
+                  <div className="xp-bar"><div className="xp-fill" style={{width: `${Math.round((progress.elapsed / Math.max(1, progress.total)) * 100)}%`}} /></div>
+                  <span className="text-[10px] font-bold">{formatStr(t.missionProgressLabel, {elapsed: progress.elapsed, total: progress.total})}</span>
+                </div>
+              );
+            })()}
             <button
               type="button"
               className="game-button-primary w-full text-[11px]"

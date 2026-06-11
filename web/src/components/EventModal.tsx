@@ -12,6 +12,8 @@ const EVENT_THEME: Record<string, string> = {
   STORM: 'ribbon-blue',
   PIRATE: 'ribbon-orange',
   CLUE_FOUND: 'ribbon-green',
+  TROUBLE: 'ribbon-orange',
+  HIDDEN: 'ribbon-green',
 };
 
 export function EventModal({session}: Props) {

@@ -185,7 +185,17 @@ export const TRIP_EVENTS: TripEventDef[] = [
     interactive: true,
     choices: [{key: 'take', label: '收下！', effect: {clue: 1, label: '获得线索 +1'}}],
   },
-  {weight: 20, code: 'TROUBLE', title: '小麻烦', body: '补给磕碰，损失 10 金币。', effect: {coin: -10}},
+  {
+    weight: 20,
+    code: 'TROUBLE',
+    title: '小麻烦',
+    body: '补给磕碰，损失 10 金币。',
+    interactive: true,
+    choices: [
+      {key: 'pay', label: '支付修理费 -¥10', effect: {coin: -10, label: '支付 10 金币修理'}},
+      {key: 'ignore', label: '凑合继续', effect: {delay: 1, label: '凑合继续，延误 1 回合'}},
+    ],
+  },
   {
     weight: 15,
     code: 'STORM',
@@ -208,7 +218,14 @@ export const TRIP_EVENTS: TripEventDef[] = [
       {key: 'detour', label: '绕路 -¥50', requireCoin: 50, effect: {coin: -50, label: '绕路避开，-50 金币'}},
     ],
   },
-  {weight: 5, code: 'HIDDEN', title: '隐藏支线', body: '发现一条隐藏支线，解锁额外奖励。', effect: {star: 1, clue: 2}},
+  {
+    weight: 5,
+    code: 'HIDDEN',
+    title: '隐藏支线',
+    body: '发现一条隐藏支线，解锁额外奖励。',
+    interactive: true,
+    choices: [{key: 'take', label: '收下！', effect: {star: 1, clue: 2, label: '星星+1 线索+2'}}],
+  },
 ];
 
 const ALL_CITIES = MOCK_REGIONS.flatMap((region) => region.cities);

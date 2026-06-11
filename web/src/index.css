@@ -379,6 +379,20 @@
   .captain-chip {
     @apply flex items-center gap-2 px-3 py-2 min-w-[220px] bg-[#fdf6e3]/90 border-[3px] border-[#8c6239] rounded-[24px] shadow-[0_6px_0_0_rgba(140,98,57,0.25)];
   }
+  .captain-chip.is-golden {
+    @apply ring-2 ring-[#f5d04c] bg-gradient-to-r from-[#fff8dc] to-[#fdf6e3];
+  }
+
+  .pass-badge {
+    @apply px-2 py-0.5 rounded-full text-[10px] font-black border border-[#8c6239] bg-white/70;
+  }
+  .pass-badge.golden { @apply bg-[#f5d04c]/50; }
+
+  .fatigue-debuff-tag {
+    @apply text-[10px] font-black text-[#b45309] px-2 py-0.5 rounded-full bg-amber-100 border border-amber-300;
+  }
+
+  .mission-progress-bar { @apply space-y-1; }
 
   .captain-meta { @apply flex-1 space-y-1 text-[10px] font-black; }
   .captain-xp { @apply opacity-70; }

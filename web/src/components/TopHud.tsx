@@ -12,7 +12,7 @@ type BumpKey = 'coin' | 'clue' | 'star' | 'fuel';
 type BumpMap = Partial<Record<BumpKey, 'up' | 'down'>>;
 
 export function TopHud({session}: Props) {
-  const {t, resources, fuelCap, loading, advanceTurnBusy, usingFallback, reloadAll, advanceTurn, setShowPassport, captainXp} = session;
+  const {t, resources, fuelCap, loading, advanceTurnBusy, usingFallback, reloadAll, advanceTurn, setShowPassport, captainXp, passport, globalPassActive} = session;
   const prevRef = useRef<Record<BumpKey, number>>({coin: 0, clue: 0, star: 0, fuel: 0});
   const [bump, setBump] = useState<BumpMap>({});
 
@@ -47,7 +47,7 @@ export function TopHud({session}: Props) {
 
   return (
     <header className="top-hud anim-fade">
-      <button type="button" className="captain-chip" onClick={() => setShowPassport(true)}>
+      <button type="button" className={`captain-chip ${passport.goldenCoating ? 'is-golden' : ''}`} onClick={() => setShowPassport(true)}>
         <div className="captain-avatar">奇</div>
         <div className="captain-meta">
           <div>{t.captainLevel}</div>
@@ -69,6 +69,8 @@ export function TopHud({session}: Props) {
           );
         })}
         <div className="resource-chip turn-chip">{formatStr(t.turnNth, {n: resources.turn})}</div>
+        {globalPassActive ? <span className="pass-badge">{t.globalPassBadge}</span> : null}
+        {passport.goldenCoating ? <span className="pass-badge golden">{t.goldenCoatingBadge}</span> : null}
         {usingFallback ? <span className="offline-badge">{t.offlineMode}</span> : null}
       </div>
 

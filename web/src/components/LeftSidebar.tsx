@@ -1,4 +1,5 @@
 import type {GameSession} from '../state/useGameSession';
+import {effectiveGuard, effectiveStamina, effectiveWit, fatigueDebuffLabel, HQ_CITY_ID} from '../game/agents';
 import {fatigueBarClass} from '../game/fatigue';
 import {formatStr} from '../i18n/strings';
 import type {MapViewType} from '../api/types';
@@ -29,48 +30,53 @@ function statusLabel(session: GameSession, agent: GameSession['agents'][number])
 }
 
 export function LeftSidebar({session}: Props) {
-  const {t, agents, viewType, switchView, restAgent} = session;
+  const {t, agents, viewType, switchView, restAgent, selectedCityId} = session;
 
   return (
     <aside className="game-sidebar left-sidebar">
       <div className="sidebar-section">
         <div className="sidebar-title">{t.teamPanel}</div>
         <div className="agent-list">
-          {agents.map((agent) => (
-            <div key={agent.id} className="agent-card">
-              <div className="agent-card-head">
-                <div className="agent-avatar">{agent.name.slice(0, 1)}</div>
-                <div className="agent-meta">
-                  <div className="agent-name">{agent.name}</div>
-                  <div className="agent-title">{agent.title}</div>
+          {agents.map((agent) => {
+            const debuff = fatigueDebuffLabel(agent.fatigue);
+            const atHq = selectedCityId === HQ_CITY_ID;
+            return (
+              <div key={agent.id} className="agent-card">
+                <div className="agent-card-head">
+                  <div className="agent-avatar">{agent.name.slice(0, 1)}</div>
+                  <div className="agent-meta">
+                    <div className="agent-name">{agent.name}</div>
+                    <div className="agent-title">{agent.title}</div>
+                  </div>
+                  {agent.vehicleSticker ? <span className="agent-vehicle">{agent.vehicleSticker}</span> : null}
                 </div>
-                {agent.vehicleSticker ? <span className="agent-vehicle">{agent.vehicleSticker}</span> : null}
-              </div>
-              <div className="agent-stats">
-                <span>❤ {agent.stamina}/{agent.maxStamina}</span>
-                <span>🛡 {agent.guard}</span>
-                <span>⭐ {agent.wit}</span>
-              </div>
-              <div className="fatigue-row">
-                <span>{t.agentFatigue}</span>
-                <div className="fatigue-bar">
-                  <div className={`fatigue-fill ${fatigueBarClass(agent.fatigue)}`} style={{width: `${agent.fatigue}%`}} />
+                <div className="agent-stats">
+                  <span>❤ {effectiveStamina(agent)}/{agent.maxStamina}</span>
+                  <span>🛡 {effectiveGuard(agent)}</span>
+                  <span>⭐ {effectiveWit(agent)}</span>
                 </div>
-                <span>{agent.fatigue}/100</span>
-              </div>
-              <div className={`agent-badge status-${agent.status.toLowerCase()}`}>{statusLabel(session, agent)}</div>
-              {agent.status === 'NEED_REST' || agent.status === 'RESTING' ? (
-                <div className="mt-2 space-y-2">
-                  <button type="button" className="game-button w-full text-[11px]" onClick={() => restAgent(agent.id, agent.id === 1)}>
-                    {t.agentRest}
-                  </button>
-                  {agent.status === 'NEED_REST' ? (
-                    <p className="text-[10px] text-[#d9534f] font-bold">{t.insufficientFatigue} · {t.agentForceDepart}</p>
-                  ) : null}
+                {debuff ? <div className="fatigue-debuff-tag">{debuff}</div> : null}
+                <div className="fatigue-row">
+                  <span>{t.agentFatigue}</span>
+                  <div className="fatigue-bar">
+                    <div className={`fatigue-fill ${fatigueBarClass(agent.fatigue)}`} style={{width: `${agent.fatigue}%`}} />
+                  </div>
+                  <span>{agent.fatigue}/100</span>
                 </div>
-              ) : null}
-            </div>
-          ))}
+                <div className={`agent-badge status-${agent.status.toLowerCase()}`}>{statusLabel(session, agent)}</div>
+                {agent.status === 'NEED_REST' || agent.status === 'RESTING' ? (
+                  <div className="mt-2 space-y-2">
+                    <button type="button" className="game-button w-full text-[11px]" onClick={() => restAgent(agent.id, atHq)}>
+                      {atHq ? t.agentRest : `${t.agentRest} (10${t.labelCoins})`}
+                    </button>
+                    {agent.status === 'NEED_REST' ? (
+                      <p className="text-[10px] text-[#d9534f] font-bold">{t.insufficientFatigue}</p>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
         </div>
       </div>
       <div className="sidebar-section">

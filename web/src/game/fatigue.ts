@@ -27,7 +27,22 @@ export function mustRestBeforeTravel(fatigue: number): boolean {
 }
 
 export function restFatiguePerTurn(atHq: boolean): number {
-  return atHq ? 30 : 30;
+  return 30;
+}
+
+export function predictFatigueAfterTrip(current: number, tripFatigue: number): number {
+  return Math.min(100, current + tripFatigue);
+}
+
+export function fatigueDebuffAfterTrip(current: number, tripFatigue: number): string | null {
+  const next = predictFatigueAfterTrip(current, tripFatigue);
+  if (next >= 70) {
+    return '抵达后需休整';
+  }
+  if (next >= 40) {
+    return '抵达后机敏-1';
+  }
+  return null;
 }
 
 export function restCoinCost(atHq: boolean): number {

@@ -37,12 +37,33 @@ export function vehicleSticker(type: VehicleType | string | undefined): string |
   return VEHICLE_ICON[type as VehicleType] ?? undefined;
 }
 
-export function effectiveWit(agent: Agent): number {
-  if (agent.fatigue >= 40 && agent.fatigue < 70) {
-    return Math.max(0, agent.wit - 1);
+function fatigueDebuff(agent: Agent): number {
+  if (agent.fatigue >= 40) {
+    return 1;
   }
-  if (agent.fatigue >= 70) {
-    return Math.max(0, agent.wit - 1);
-  }
-  return agent.wit;
+  return 0;
 }
+
+export function effectiveWit(agent: Agent): number {
+  return Math.max(0, agent.wit - fatigueDebuff(agent));
+}
+
+export function effectiveGuard(agent: Agent): number {
+  return Math.max(0, agent.guard - fatigueDebuff(agent));
+}
+
+export function effectiveStamina(agent: Agent): number {
+  return Math.max(0, agent.stamina - fatigueDebuff(agent));
+}
+
+export function fatigueDebuffLabel(fatigue: number): string | null {
+  if (fatigue >= 70) {
+    return '需休整';
+  }
+  if (fatigue >= 40) {
+    return '机敏-1';
+  }
+  return null;
+}
+
+export const HQ_CITY_ID = 1;

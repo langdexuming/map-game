@@ -70,6 +70,9 @@ export function PassportPanel({session}: Props) {
             </div>
             <p className="feed-body">{formatStr(t.passportMileageGoal, {n: MILEAGE_GOAL})}</p>
             <p className="feed-body">{t.passportGlobalPassHint}</p>
+            {passport.specialStamps['triple-combo'] ? (
+              <div className="stamp is-stamped">{t.specialStampTriple}</div>
+            ) : null}
           </section>
         </div>
       </div>

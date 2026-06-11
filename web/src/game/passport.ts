@@ -3,6 +3,7 @@ export interface PassportState {
   visas: Record<number, boolean>;
   mileage: number;
   goldenCoating: boolean;
+  specialStamps: Record<string, boolean>;
 }
 
 export const VISA_REQUIREMENTS: Record<number, {clue?: number; star?: number}> = {
@@ -25,6 +26,17 @@ export function createInitialPassport(): PassportState {
     visas: {},
     mileage: 0,
     goldenCoating: false,
+    specialStamps: {},
+  };
+}
+
+export function applySpecialStamp(state: PassportState, key: string): PassportState {
+  if (state.specialStamps[key]) {
+    return state;
+  }
+  return {
+    ...state,
+    specialStamps: {...state.specialStamps, [key]: true},
   };
 }
 

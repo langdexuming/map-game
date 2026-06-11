@@ -1,4 +1,6 @@
 import type {VehicleType} from './mockData';
+import {calcTripFatigue} from './fatigue';
+import type {TripPlan} from './travel';
 
 export interface ScheduleSlot {
   offset: number;
@@ -38,6 +40,24 @@ export function slotPrice(basePrice: number, slot: ScheduleSlot, lastMinute: boo
     price = Math.round(price * 1.5);
   }
   return Math.max(0, price);
+}
+
+export function applySlotToPlan(plan: TripPlan, slot: ScheduleSlot): TripPlan {
+  if (slot.vehicleOverride !== 'SHIP') {
+    return plan;
+  }
+  const vehicleChain = plan.vehicleChain.map((vehicle, index) =>
+    index === plan.vehicleChain.length - 1 && vehicle === 'PLANE' ? 'SHIP' : vehicle,
+  );
+  const fatigueCost = calcTripFatigue(vehicleChain);
+  return {
+    ...plan,
+    vehicleChain,
+    totalTurn: plan.totalTurn + 1,
+    fuelCost: Math.max(0, plan.fuelCost - 2),
+    fatigueCost,
+    bonusDesc: `${plan.bonusDesc} · 慢船换乘`,
+  };
 }
 
 export function nextDepartureOffset(currentTurn: number, bookedTrips: Array<{departureTurn: number}>): number {

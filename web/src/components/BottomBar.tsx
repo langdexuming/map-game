@@ -8,7 +8,7 @@ interface Props {
 }
 
 export function BottomBar({session, onOpenPanel}: Props) {
-  const {t, nextScheduleTurn, setShowTimetable, resetTravelSelection, viewType, switchView} = session;
+  const {t, nextScheduleTurn, setShowTimetable, startDepartFlow, switchView} = session;
 
   return (
     <footer className="bottom-bar">
@@ -31,7 +31,7 @@ export function BottomBar({session, onOpenPanel}: Props) {
       <div className="bottom-group">
         <div className="bottom-label">{t.activeUnit}</div>
         <div className="bottom-actions">
-          <button type="button" className="round-action is-green" onClick={() => resetTravelSelection(true)} title={t.actionDepart}><Play size={18} /></button>
+          <button type="button" className="round-action is-green" onClick={() => startDepartFlow()} title={t.actionDepart}><Play size={18} /></button>
           <button type="button" className="round-action" onClick={() => onOpenPanel('trips')} title={t.actionTeam}><Users size={18} /></button>
           <button type="button" className="round-action" onClick={() => switchView('EXPLORER')} title={t.actionScout}><Search size={18} /></button>
           <button type="button" className="round-action" onClick={() => onOpenPanel('missions')} title={t.actionEscort}><Shield size={18} /></button>
