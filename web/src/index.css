@@ -1,17 +1,22 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Microsoft YaHei", "PingFang SC", "Noto Sans SC", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --color-parchment: #F6EBD2;
+  --color-ink: #5A4B3F;
+  --color-border: #8C6239;
+  --color-water: #7EC3E0;
+  --color-green: #9CCB6B;
+  --color-orange: #F08A4B;
+  --color-yellow: #F5D04C;
+  --color-danger: #D9534F;
 }
 
 @layer base {
   body {
-    @apply bg-[#0f1419] text-[#e8dcc4] antialiased overflow-hidden;
-    background-image:
-      radial-gradient(circle at 20% 30%, rgba(74, 63, 53, 0.4) 0%, transparent 50%),
-      radial-gradient(circle at 80% 70%, rgba(45, 38, 31, 0.4) 0%, transparent 50%),
-      linear-gradient(180deg, #1a1612 0%, #0f1419 100%);
+    @apply text-[#5a4b3f] antialiased overflow-hidden;
+    background: linear-gradient(180deg, #f6ebd2 0%, #ead7b5 100%);
   }
   html, body, #root {
     @apply h-full w-full;
@@ -20,20 +25,25 @@
 
 @layer components {
   .game-card {
-    @apply bg-[#fdf6e3]/65 backdrop-blur-sm border-4 border-[#dcd2ba] rounded-xl shadow-[0_4px_0_0_#dcd2ba] overflow-hidden;
+    @apply bg-[#fdf6e3]/90 border-[3px] border-[#8c6239] rounded-[24px] shadow-[0_6px_0_0_rgba(140,98,57,0.25)] overflow-hidden;
+  }
+
+  .game-button-primary {
+    @apply relative bg-[#9ccb6b] border-[3px] border-[#6f9f45] text-[#2f4a18] rounded-full px-4 py-2 font-black transition-all
+           hover:brightness-105 active:translate-y-0.5 shadow-[0_3px_0_0_#6f9f45];
+  }
+
+  .game-button {
+    @apply relative bg-[#fdf6e3] border-[3px] border-[#8c6239] rounded-full px-4 py-2 transition-all
+           hover:bg-[#f4ebd0] active:translate-y-0.5 shadow-[0_3px_0_0_rgba(140,98,57,0.35)];
   }
 
   .game-inset {
     @apply bg-[#f4ebd0] border-2 border-[#dcd2ba] rounded-lg shadow-inner;
   }
 
-  .game-button {
-    @apply relative bg-[#fdf6e3] border-2 border-[#dcd2ba] rounded-lg px-3 py-1.5 transition-all
-           hover:bg-[#f4ebd0] active:translate-y-0.5 active:shadow-none shadow-[0_2px_0_0_#dcd2ba];
-  }
-
   .game-button-active {
-    @apply bg-[#eddbaf] border-[#cbb78d] shadow-none translate-y-0.5;
+    @apply bg-[#eddbaf] border-[#8c6239] shadow-none translate-y-0.5;
   }
 
   .xp-bar {
@@ -90,9 +100,9 @@
   }
 
   .drawer {
-    @apply fixed top-16 right-0 bottom-4 w-[340px]
-           bg-[#fdf6e3]/65 backdrop-blur-sm border-l-4 border-[#dcd2ba] rounded-l-2xl
-           shadow-[-8px_0_30px_rgba(0,0,0,0.45)]
+    @apply fixed top-[76px] right-3 bottom-[88px] w-[340px]
+           bg-[#fdf6e3]/95 border-[3px] border-[#8c6239] rounded-[24px]
+           shadow-[0_12px_40px_rgba(90,75,63,0.25)]
            flex flex-col overflow-hidden z-30
            text-[#4a3f35];
   }
@@ -263,6 +273,258 @@
     opacity: 0.42;
     filter: drop-shadow(0 6px 14px rgba(0,0,0,0.6));
     transform: rotate(-8deg);
+  }
+
+  .game-shell {
+    @apply h-screen w-screen overflow-hidden flex flex-col;
+    background: linear-gradient(180deg, #f6ebd2 0%, #ead7b5 100%);
+  }
+
+  .game-main {
+    @apply flex flex-1 min-h-0 gap-3 px-3 pb-3 pt-[76px];
+  }
+
+  .game-center {
+    @apply relative flex-1 min-w-0 rounded-[28px] overflow-hidden border-[3px] border-[#8c6239] shadow-[inset_0_0_0_2px_rgba(255,255,255,0.35)];
+  }
+
+  .map-stage {
+    @apply absolute inset-0 overflow-hidden;
+  }
+
+  .game-sidebar {
+    @apply w-[220px] shrink-0 flex flex-col gap-3 overflow-y-auto pb-24;
+  }
+
+  .right-sidebar {
+    @apply w-[260px];
+  }
+
+  .sidebar-section, .feed-card {
+    @apply p-3 bg-[#fdf6e3]/90 border-[3px] border-[#8c6239] rounded-[24px] shadow-[0_6px_0_0_rgba(140,98,57,0.25)] overflow-hidden;
+  }
+
+  .sidebar-title, .feed-title {
+    @apply text-[12px] font-black mb-2 text-[#5a4b3f];
+  }
+
+  .ribbon-green { color: #3f6f2d; }
+  .ribbon-blue { color: #2f6f93; }
+  .ribbon-orange { color: #b45309; }
+
+  .agent-list { @apply space-y-2; }
+
+  .agent-card {
+    @apply p-2 space-y-2 bg-[#f4ebd0] border-2 border-[#dcd2ba] rounded-lg shadow-inner;
+  }
+
+  .agent-card-head { @apply flex items-center gap-2; }
+  .agent-avatar {
+    @apply w-9 h-9 rounded-full bg-[#7ec3e0] border-2 border-[#8c6239] flex items-center justify-center font-black;
+  }
+  .agent-avatar.large { @apply w-14 h-14 text-xl; }
+  .agent-meta { @apply min-w-0 flex-1; }
+  .agent-name { @apply text-[12px] font-black truncate; }
+  .agent-title { @apply text-[10px] opacity-75; }
+  .agent-vehicle { @apply text-lg; }
+  .agent-stats { @apply flex gap-2 text-[10px] font-bold; }
+
+  .fatigue-row { @apply flex items-center gap-2 text-[10px]; }
+  .fatigue-bar {
+    @apply flex-1 h-2 rounded-full bg-[#e6dcc5] border border-[#8c6239] overflow-hidden;
+  }
+  .fatigue-fill { @apply h-full rounded-full; }
+  .fatigue-fill-low { @apply bg-[#9ccb6b]; }
+  .fatigue-fill-mid { @apply bg-[#f5d04c]; }
+  .fatigue-fill-high { @apply bg-[#f08a4b]; }
+
+  .agent-badge {
+    @apply text-[10px] font-black px-2 py-1 rounded-full border border-[#8c6239] bg-white/60 text-center;
+  }
+
+  .view-toggle-grid { @apply grid grid-cols-2 gap-2; }
+  .view-toggle {
+    @apply text-[10px] font-black py-2 relative bg-[#fdf6e3] border-[3px] border-[#8c6239] rounded-full px-4 transition-all hover:bg-[#f4ebd0];
+  }
+  .view-toggle.is-active {
+    @apply bg-[#f5d04c] border-[#d4a017];
+  }
+
+  .feed-body, .feed-list { @apply text-[11px] leading-relaxed; }
+  .feed-list { @apply list-disc pl-4 space-y-1; }
+  .feed-list.compact { @apply text-[10px]; }
+
+  .mission-card { @apply p-2 space-y-2 bg-[#f4ebd0] border-2 border-[#dcd2ba] rounded-lg shadow-inner; }
+  .mission-card-head { @apply flex items-center gap-2; }
+  .mission-star { @apply text-[#f5d04c] font-black; }
+  .mission-name { @apply font-black text-[12px]; }
+  .mission-body, .mission-route { @apply text-[10px] opacity-80; }
+
+  .research-row, .mileage-row {
+    @apply flex items-center gap-2 text-[10px] mb-2;
+  }
+  .research-bar, .research-bar.wide {
+    @apply flex-1 h-2 rounded-full bg-[#e6dcc5] border border-[#8c6239] overflow-hidden;
+  }
+  .research-bar > div { @apply h-full bg-[#7ec3e0]; }
+
+  .top-hud {
+    @apply fixed top-0 left-0 right-0 z-40 flex items-center gap-3 px-4 py-2 pointer-events-none;
+    background: linear-gradient(180deg, rgba(246,235,210,0.96), rgba(246,235,210,0.82));
+    border-bottom: 3px solid #8c6239;
+  }
+
+  .captain-chip, .resource-row, .hud-actions { @apply pointer-events-auto; }
+
+  .captain-chip {
+    @apply flex items-center gap-2 px-3 py-2 min-w-[220px] bg-[#fdf6e3]/90 border-[3px] border-[#8c6239] rounded-[24px] shadow-[0_6px_0_0_rgba(140,98,57,0.25)];
+  }
+
+  .captain-meta { @apply flex-1 space-y-1 text-[10px] font-black; }
+  .captain-xp { @apply opacity-70; }
+
+  .title-ribbon {
+    @apply pointer-events-none flex-1 text-center text-[18px] font-black text-[#5a4b3f]
+           drop-shadow-[0_1px_0_rgba(255,255,255,0.8)];
+  }
+
+  .resource-row { @apply flex items-center gap-2 flex-wrap; }
+  .resource-chip {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full
+           bg-white/70 border-[2px] border-[#8c6239] text-[12px] font-black;
+  }
+  .turn-chip { @apply bg-[#f5d04c]/70; }
+  .offline-badge {
+    @apply px-2 py-1 rounded-full text-[10px] font-black bg-[#f08a4b]/20 border border-[#f08a4b];
+  }
+
+  .hud-actions { @apply ml-auto flex items-center gap-2; }
+
+  .bottom-bar {
+    @apply fixed bottom-0 left-0 right-0 z-40 flex items-center gap-4 px-4 py-3
+           border-t-[3px] border-[#8c6239] bg-[#fdf6e3]/95 backdrop-blur-sm;
+  }
+
+  .schedule-clock {
+    @apply flex items-center gap-2 text-[12px] font-black min-w-[140px] relative bg-[#fdf6e3] border-[3px] border-[#8c6239] rounded-full px-4 py-2;
+  }
+  .clock-face { @apply text-lg; }
+
+  .bottom-group { @apply flex items-center gap-3; }
+  .bottom-label { @apply text-[11px] font-black whitespace-nowrap; }
+  .bottom-actions { @apply flex items-center gap-2; }
+
+  .round-action {
+    @apply w-11 h-11 rounded-full border-[3px] border-[#8c6239] bg-white/80
+           flex items-center justify-center transition-all hover:-translate-y-0.5;
+  }
+  .round-action.is-highlight { @apply bg-[#f5d04c]/80; }
+  .round-action.is-green { @apply bg-[#9ccb6b]/80; }
+
+  .trip-planner-panel {
+    @apply absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 w-[min(760px,calc(100%-24px))] p-4 pt-10
+           bg-[#fdf6e3]/90 border-[3px] border-[#8c6239] rounded-[24px] shadow-[0_6px_0_0_rgba(140,98,57,0.25)] overflow-hidden;
+  }
+
+  .planner-ribbon {
+    @apply absolute left-1/2 -top-7 -translate-x-1/2 w-[60%] max-w-[320px] pointer-events-none;
+  }
+
+  .planner-close {
+    @apply absolute top-2 right-2 z-10 !px-2 !py-2;
+  }
+
+  .planner-route {
+    @apply flex items-center justify-center gap-2 text-[13px] font-black mb-3;
+  }
+
+  .planner-plans {
+    @apply grid grid-cols-1 md:grid-cols-3 gap-2 mb-3;
+  }
+
+  .planner-plan-card {
+    @apply p-3 text-left relative transition-all bg-[#f4ebd0] border-2 border-[#dcd2ba] rounded-lg shadow-inner;
+  }
+  .planner-plan-card.is-selected {
+    @apply ring-[3px] ring-[#f5d04c] bg-[#fff8dc];
+  }
+
+  .plan-crown { @apply absolute top-2 left-2 text-[#d4a017]; }
+  .plan-badge {
+    @apply absolute top-2 right-2 text-[10px] font-black px-2 py-0.5 rounded-full bg-[#7ec3e0]/40;
+  }
+  .plan-title { @apply text-[12px] font-black; }
+  .plan-desc { @apply text-[10px] opacity-75 min-h-[28px]; }
+  .plan-tags { @apply flex flex-wrap gap-1 text-[10px] font-bold mt-2; }
+  .plan-vehicles { @apply flex items-center gap-1 mt-2 min-h-[28px]; }
+  .plan-veh-icon { @apply w-7 h-7 object-contain; }
+
+  .timetable-strip { @apply mb-3; }
+  .timetable-label { @apply text-[11px] font-black mb-2; }
+  .timetable-slots { @apply flex gap-2 overflow-x-auto pb-1; }
+  .timetable-slot {
+    @apply min-w-[72px] px-2 py-2 text-[10px] font-black text-center bg-[#f4ebd0] border-2 border-[#dcd2ba] rounded-lg shadow-inner;
+  }
+  .timetable-slot.is-active { @apply bg-[#f5d04c]/60; }
+  .peak-tag { @apply text-[#d9534f]; }
+
+  .budget-bar {
+    @apply flex flex-wrap gap-3 justify-center text-[11px] font-black mb-3 p-2 rounded-xl bg-white/50 border border-[#8c6239];
+  }
+  .budget-bar .is-danger { @apply text-[#d9534f]; }
+
+  .planner-actions { @apply flex justify-end gap-2; }
+
+  .modal-overlay {
+    @apply fixed inset-0 z-50 flex items-center justify-center bg-[#5a4b3f]/45 backdrop-blur-sm p-4;
+  }
+
+  .event-card, .passport-panel, .timetable-modal {
+    @apply relative w-[min(720px,calc(100vw-32px))] p-5 pt-10
+           bg-[#fdf6e3]/90 border-[3px] border-[#8c6239] rounded-[24px] shadow-[0_6px_0_0_rgba(140,98,57,0.25)] overflow-hidden;
+  }
+
+  .event-dice {
+    @apply absolute top-3 left-3 text-[11px] font-black px-2 py-1 rounded-full bg-white/70 border border-[#8c6239];
+  }
+  .dice-roll { @apply block text-[10px] mt-1; }
+  .event-body { @apply text-[13px] leading-relaxed mb-2; }
+  .event-timeout { @apply text-[10px] opacity-70 mb-3; }
+  .event-choices { @apply flex flex-wrap gap-2; }
+
+  .passport-grid { @apply grid md:grid-cols-2 gap-4; }
+  .passport-profile { @apply flex items-center gap-3 mb-3; }
+  .stamp-grid { @apply grid grid-cols-2 gap-2; }
+  .stamp {
+    @apply rounded-xl border-2 border-dashed border-[#8c6239] p-2 text-[10px] font-black text-center min-h-[56px] flex items-center justify-center;
+  }
+  .stamp.is-stamped { @apply bg-[#9ccb6b]/30 border-solid; }
+  .visa-row {
+    @apply flex items-center justify-between gap-2 text-[11px] mb-2 p-2 rounded-xl bg-white/50 border border-[#8c6239];
+  }
+
+  .timetable-rules {
+    @apply grid md:grid-cols-3 gap-2 text-[10px] font-bold mb-3;
+  }
+
+  .error-banner {
+    @apply fixed top-20 left-1/2 -translate-x-1/2 z-50 px-3 py-2 rounded-full
+           bg-[#d9534f] text-white text-xs font-bold flex items-center gap-2 shadow-lg;
+  }
+
+  .region-label {
+    @apply text-[14px] font-black whitespace-nowrap text-[#5a4b3f]/70;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.8);
+    letter-spacing: 0.08em;
+  }
+
+  .city-pin-label {
+    @apply block text-center text-[11px] font-black px-2 py-0.5 rounded-md whitespace-nowrap max-w-[150px] truncate mx-auto;
+    margin-top: 2px;
+    background: rgba(253,246,227,0.92);
+    color: #5a4b3f;
+    border: 2px solid #8c6239;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
   }
 }
 

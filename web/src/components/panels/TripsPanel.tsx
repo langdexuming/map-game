@@ -9,15 +9,19 @@ interface Props {
 }
 
 export function TripsPanel({session}: Props) {
-  const {t, activeTrips} = session;
+  const {t, activeTrips, resources} = session;
   if (activeTrips.length === 0) {
     return <p className="text-[11px] opacity-75">{t.noTrips}</p>;
   }
   return (
     <>
       {activeTrips.map((trip) => {
-        const totalTurns = trip.plan.totalTurn + trip.delayTurn;
-        const progress = Math.round((trip.elapsedTurn / Math.max(1, totalTurns)) * 100);
+        const totalTurns = trip.status === 'BOOKED'
+          ? trip.plan.totalTurn + trip.delayTurn
+          : trip.plan.totalTurn + trip.delayTurn;
+        const progress = trip.status === 'BOOKED'
+          ? 0
+          : Math.round((trip.elapsedTurn / Math.max(1, totalTurns)) * 100);
         return (
           <div key={trip.id} className="game-inset p-3 space-y-2">
             <div className="flex items-center justify-between gap-2">
@@ -28,7 +32,13 @@ export function TripsPanel({session}: Props) {
                   to: cityLabel(trip.to),
                 })}
               </div>
-              <div className="text-[10px] opacity-70">{trip.status === 'PAUSED' ? t.eventPending : t.resolved}</div>
+              <div className="text-[10px] opacity-70">
+                {trip.status === 'BOOKED'
+                  ? formatStr(t.logTripBooked, {id: trip.id, offset: Math.max(0, trip.departureTurn - session.resources.turn)})
+                  : trip.status === 'PAUSED'
+                    ? t.eventPending
+                    : t.resolved}
+              </div>
             </div>
             <div className="xp-bar">
               <div className="xp-fill" style={{width: `${clamp(progress, 0, 100)}%`}} />

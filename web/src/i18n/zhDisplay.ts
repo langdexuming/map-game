@@ -5,16 +5,18 @@
  */
 
 const REGION_ZH: Record<string, string> = {
-  'Water Land': '水之大陆',
+  'Water Land': '水域之国',
   'Toy Isles': '玩具群岛',
   'Vanguard Isles': '先锋群岛',
   'Rainbow Land': '彩虹大陆',
-  'Greenforest Land': '绿林大陆',
-  '水之大陆': '水之大陆',
+  'Greenforest Land': '绿森林地',
+  '水之大陆': '水域之国',
+  '水域之国': '水域之国',
   '玩具群岛': '玩具群岛',
   '先锋群岛': '先锋群岛',
   '彩虹大陆': '彩虹大陆',
-  '绿林大陆': '绿林大陆',
+  '绿林大陆': '绿森林地',
+  '绿森林地': '绿森林地',
 };
 
 const THEME_ZH: Record<string, string> = {
@@ -31,7 +33,7 @@ const THEME_ZH: Record<string, string> = {
 };
 
 const CITY_ZH: Record<number, string> = {
-  1: '小神盾总部',
+  1: '小盾总部',
   2: '新星基地',
   3: '顶点总部',
   4: '协同城',

@@ -30,11 +30,11 @@ export function MapCanvas({session, onCityClick}: Props) {
 
   return (
     <div
-      className="absolute inset-0 z-0 overflow-hidden"
+      className="map-stage"
       style={
         mapBackdropStyle ?? {
           background:
-            'radial-gradient(ellipse at center, #2a2520 0%, #14110d 70%, #0a0806 100%)',
+            'radial-gradient(ellipse at center, rgba(246,235,210,0.55) 0%, rgba(214,186,140,0.85) 70%, rgba(140,98,57,0.35) 100%)',
         }
       }
     >

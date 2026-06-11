@@ -1,4 +1,5 @@
 import type {CityVO} from '../api/types';
+import {calcTripFatigue} from './fatigue';
 import {
   cityById,
   MOCK_ROUTES,
@@ -21,9 +22,13 @@ export interface TripPlan {
   totalTurn: number;
   totalPrice: number;
   fuelCost: number;
+  fatigueCost: number;
   vehicleChain: string[];
   eventExpect: number;
   bonusDesc: string;
+  planBadge: string;
+  transferCombo: boolean;
+  tripleCombo: boolean;
   /** 相对无倍率航线的风险加权，用于 UI 提示 */
   riskScore: number;
   planStyle: Preference;
@@ -41,8 +46,13 @@ export interface ActiveTrip {
   plan: TripPlan;
   elapsedTurn: number;
   delayTurn: number;
-  status: 'IN_TRANSIT' | 'ARRIVED' | 'PAUSED';
+  status: 'BOOKED' | 'IN_TRANSIT' | 'ARRIVED' | 'PAUSED';
+  departureTurn: number;
+  scheduleOffset: number;
+  paidPrice: number;
   lastEventCode?: string;
+  d100Roll?: number;
+  leadAgentId: number;
 }
 
 export interface TriggeredEvent {
@@ -208,6 +218,7 @@ function buildPlan(
   planNo: number,
   routes: RouteDef[],
   bonusDesc: string,
+  planBadge: string,
   priceDiscount: number,
   planStyle: Preference,
 ): TripPlan {
@@ -216,6 +227,8 @@ function buildPlan(
   const discount = Math.min(0.35, Math.max(0, priceDiscount));
   const totalPrice = Math.max(0, Math.round(rawPrice * (1 - discount)));
   const fuelCost = routes.reduce((sum, route) => sum + (route.vehicleType === 'FOOT' ? 0 : 10), 0);
+  const vehicleChain = routes.map((route) => route.vehicleType);
+  const uniqueVehicles = new Set(vehicleChain);
   const riskScore = Math.round(routes.reduce((sum, route) => sum + effectiveRouteRisk(route), 0) * 100);
   return {
     planNo,
@@ -223,9 +236,13 @@ function buildPlan(
     totalTurn,
     totalPrice,
     fuelCost,
-    vehicleChain: routes.map((route) => route.vehicleType),
+    fatigueCost: calcTripFatigue(vehicleChain),
+    vehicleChain,
     eventExpect: Math.max(1, Math.round(totalTurn * 0.25)),
     bonusDesc,
+    planBadge,
+    transferCombo: uniqueVehicles.size >= 2,
+    tripleCombo: uniqueVehicles.size >= 3,
     riskScore,
     planStyle,
   };
@@ -265,14 +282,13 @@ export function planTrip(
 
   const seen = new Set<string>();
   const plans: TripPlan[] = [];
-  const candidates: Array<[RouteDef[] | null, string]> = [
-    [fast, '最快抵达'],
-    [cheap, '最省金币（+1 线索）'],
-    [safe, '最低加权风险'],
+  const candidates: Array<[RouteDef[] | null, string, string, Preference]> = [
+    [fast, '直飞特快 · 2 回合直达', '最快', 'FAST'],
+    [cheap, '联运方案 · 线索 +1 · 换乘奖励', '最省', 'CHEAP'],
+    [safe, '隐秘小路 · 免费 · 发现率↑', '最稳', 'SAFE'],
   ];
 
-  for (let index = 0; index < candidates.length; index += 1) {
-    const [routeList, bonusDesc] = candidates[index];
+  for (const [routeList, bonusDesc, planBadge, planStyle] of candidates) {
     if (!routeList) {
       continue;
     }
@@ -281,22 +297,42 @@ export function planTrip(
       continue;
     }
     seen.add(signature);
-    plans.push(buildPlan(plans.length + 1, routeList, bonusDesc, priceDiscount, index === 0 ? 'FAST' : index === 1 ? 'CHEAP' : 'SAFE'));
+    plans.push(buildPlan(plans.length + 1, routeList, bonusDesc, planBadge, priceDiscount, planStyle));
   }
 
   return {plans};
 }
 
-export function pickRandomTripEvent(): TripEventDef {
-  const totalWeight = TRIP_EVENTS.reduce((sum, event) => sum + event.weight, 0);
-  let roll = Math.random() * totalWeight;
-  for (const event of TRIP_EVENTS) {
-    roll -= event.weight;
-    if (roll <= 0) {
-      return event;
-    }
+export function rollD100(): number {
+  return Math.floor(Math.random() * 100) + 1;
+}
+
+export function pickTripEventByD100(d100: number): TripEventDef {
+  if (d100 <= 25) {
+    return TRIP_EVENTS.find((event) => event.code === 'NONE') ?? TRIP_EVENTS[0];
   }
-  return TRIP_EVENTS[0];
+  if (d100 <= 50) {
+    return TRIP_EVENTS.find((event) => event.code === 'CLUE_FOUND') ?? TRIP_EVENTS[0];
+  }
+  if (d100 <= 70) {
+    return TRIP_EVENTS.find((event) => event.code === 'TROUBLE') ?? TRIP_EVENTS[0];
+  }
+  if (d100 <= 85) {
+    return TRIP_EVENTS.find((event) => event.code === 'STORM') ?? TRIP_EVENTS[0];
+  }
+  if (d100 <= 95) {
+    return TRIP_EVENTS.find((event) => event.code === 'PIRATE') ?? TRIP_EVENTS[0];
+  }
+  return TRIP_EVENTS.find((event) => event.code === 'HIDDEN') ?? TRIP_EVENTS[0];
+}
+
+export function pickRandomTripEvent(): {event: TripEventDef; d100: number} {
+  const d100 = rollD100();
+  return {event: pickTripEventByD100(d100), d100};
+}
+
+export function countUniqueVehicles(plan: TripPlan): number {
+  return new Set(plan.vehicleChain).size;
 }
 
 export function applyTripEffect(base: TripEffect, effect: TripEffect): TripEffect {

@@ -35,6 +35,19 @@ import {
   routeUnlocked,
   type TripPlan,
 } from '../game/travel';
+import {cloneDefaultAgents, type Agent, vehicleSticker} from '../game/agents';
+import {mustRestBeforeTravel as fatigueMustRest, restCoinCost, restFatiguePerTurn} from '../game/fatigue';
+import {
+  applyMileage,
+  applyStamp,
+  canPurchaseVisa,
+  createInitialPassport,
+  passportTicketDiscount,
+  type PassportState,
+  VISA_REQUIREMENTS,
+} from '../game/passport';
+import {buildScheduleSlots, nextDepartureOffset, slotPrice} from '../game/timetable';
+import {createInitialWeather, isRouteBlocked, refreshWeather, shouldRefreshWeather, type WeatherState} from '../game/weather';
 import {backdropUrlForRegionTheme} from '../game/visualSlots';
 import {displayRegionName} from '../i18n/zhDisplay';
 import {formatStr, STR} from '../i18n/strings';
@@ -57,12 +70,21 @@ export interface PendingEvent {
   tripId: number;
   title: string;
   body: string;
+  eventCode: string;
+  d100: number;
   choices: Array<{
     key: string;
     label: string;
     requireCoin?: number;
     effect: {coin?: number; clue?: number; star?: number; fuel?: number; delay?: number; label?: string};
   }>;
+}
+
+export interface ResearchProgress {
+  tech: number;
+  logistics: number;
+  intel: number;
+  engineering: number;
 }
 
 export function useGameSession() {
@@ -91,6 +113,17 @@ export function useGameSession() {
   const [cityUpgradeBusy, setCityUpgradeBusy] = useState(false);
   const [pendingEvent, setPendingEvent] = useState<PendingEvent | null>(null);
   const [logs, setLogs] = useState<string[]>([STR.logIntro1, STR.logIntro2]);
+  const [agents, setAgents] = useState<Agent[]>(() => cloneDefaultAgents());
+  const [passport, setPassport] = useState<PassportState>(() => createInitialPassport());
+  const [weather, setWeather] = useState<WeatherState>(() => createInitialWeather());
+  const [travelNews, setTravelNews] = useState<string[]>(['玩具群岛新货船抵达，票价下调 10%。', '风暴预警：北方航线可能受影响。']);
+  const [researchProgress] = useState<ResearchProgress>({tech: 65, logistics: 48, intel: 72, engineering: 58});
+  const [selectedPlanNo, setSelectedPlanNo] = useState<number | null>(null);
+  const [selectedSlotOffset, setSelectedSlotOffset] = useState<number | null>(1);
+  const [showPassport, setShowPassport] = useState(false);
+  const [showTimetable, setShowTimetable] = useState(false);
+  const [captainXp] = useState({current: 580, max: 1000});
+  const [highlightMissionId, setHighlightMissionId] = useState<number | null>(null);
 
   const nextTripId = useRef(1);
   const nextMissionId = useRef(4);
@@ -101,7 +134,48 @@ export function useGameSession() {
   turnRef.current = resources.turn;
 
   const fuelCap = useMemo(() => fuelCapForHq(hqLevel), [hqLevel]);
-  const ticketDiscount = useMemo(() => ticketDiscountForHq(hqLevel), [hqLevel]);
+  const ticketDiscount = useMemo(
+    () => ticketDiscountForHq(hqLevel) + passportTicketDiscount(passport),
+    [hqLevel, passport],
+  );
+
+  const selectedPlan = useMemo(
+    () => plannerPlans.find((plan) => plan.planNo === selectedPlanNo) ?? plannerPlans[0] ?? null,
+    [plannerPlans, selectedPlanNo],
+  );
+
+  const scheduleSlots = useMemo(
+    () => (selectedPlan ? buildScheduleSlots(selectedPlan.totalPrice) : []),
+    [selectedPlan],
+  );
+
+  const selectedSlot = useMemo(
+    () => scheduleSlots.find((slot) => slot.offset === selectedSlotOffset) ?? scheduleSlots[0] ?? null,
+    [scheduleSlots, selectedSlotOffset],
+  );
+
+  const bookingPreview = useMemo(() => {
+    if (!selectedPlan || !selectedSlot) {
+      return null;
+    }
+    const price = slotPrice(selectedPlan.totalPrice, selectedSlot, selectedSlot.offset <= 1);
+    return {
+      price,
+      fuel: selectedPlan.fuelCost,
+      fatigue: selectedPlan.fatigueCost,
+      canAffordCoin: resources.coin >= price,
+      canAffordFuel: resources.fuel >= selectedPlan.fuelCost,
+    };
+  }, [selectedPlan, selectedSlot, resources.coin, resources.fuel]);
+
+  const nextScheduleTurn = useMemo(
+    () =>
+      nextDepartureOffset(
+        resources.turn,
+        activeTrips.filter((trip) => trip.status === 'BOOKED').map((trip) => ({departureTurn: trip.departureTurn})),
+      ),
+    [resources.turn, activeTrips],
+  );
 
   useEffect(() => {
     const completed = missions.filter((m) => m.status === 'COMPLETED').length;
@@ -248,7 +322,7 @@ export function useGameSession() {
       return undefined;
     }
     return {
-      backgroundImage: `radial-gradient(ellipse at center, rgba(10,10,14,0) 30%, rgba(10,10,14,0.55) 90%), linear-gradient(rgba(15,20,25,0.25), rgba(15,20,25,0.45)), url(${url})`,
+      backgroundImage: `radial-gradient(ellipse at center, rgba(246,235,210,0.15) 20%, rgba(140,98,57,0.25) 100%), linear-gradient(rgba(246,235,210,0.2), rgba(246,235,210,0.35)), url(${url})`,
       backgroundSize: 'cover',
       backgroundPosition: 'center',
     };
@@ -295,6 +369,7 @@ export function useGameSession() {
     const drawn = new Set<string>();
     return MOCK_ROUTES.flatMap((route) => {
       if (!routeUnlocked(route, travelUnlock)) return [];
+      if (isRouteBlocked(route, weather)) return [];
       const key = routeSignature(route.fromCityId, route.toCityId, route.vehicleType);
       if (drawn.has(key)) return [];
       drawn.add(key);
@@ -310,7 +385,7 @@ export function useGameSession() {
         },
       ];
     });
-  }, [cityById, project, viewType, travelUnlock]);
+  }, [cityById, project, viewType, travelUnlock, weather]);
 
   const highlightedTripSegments = useMemo(() => {
     if (!project) return [];
@@ -333,6 +408,7 @@ export function useGameSession() {
   const activeTripTokens = useMemo(() => {
     if (!project) return [];
     return activeTrips
+      .filter((trip) => trip.status === 'IN_TRANSIT' || trip.status === 'PAUSED')
       .map((trip) => {
         const totalSteps = Math.max(1, trip.plan.totalTurn + trip.delayTurn);
         const progress = trip.elapsedTurn / totalSteps;
@@ -365,10 +441,50 @@ export function useGameSession() {
       .filter((item): item is NonNullable<typeof item> => item !== null);
   }, [activeTrips, cityById, project]);
 
+  function syncAgentsWithTrips(trips: ActiveTrip[]) {
+    setAgents((current) =>
+      current.map((agent) => {
+        const trip = trips.find((item) => item.leadAgentId === agent.id);
+        if (!trip) {
+          if (agent.status === 'IN_TRANSIT') {
+            const nextFatigue = agent.fatigue;
+            return {
+              ...agent,
+              status: nextFatigue >= 70 ? 'NEED_REST' : 'STANDBY',
+              assignedTripId: undefined,
+              vehicleSticker: undefined,
+              turnsRemaining: undefined,
+            };
+          }
+          return agent;
+        }
+        if (trip.status === 'BOOKED') {
+          return {
+            ...agent,
+            status: 'STANDBY',
+            assignedTripId: trip.id,
+            vehicleSticker: vehicleSticker(trip.plan.vehicleChain[0]),
+            turnsRemaining: Math.max(0, trip.departureTurn - turnRef.current) + trip.plan.totalTurn,
+          };
+        }
+        const remaining = Math.max(0, trip.plan.totalTurn + trip.delayTurn - trip.elapsedTurn);
+        return {
+          ...agent,
+          status: 'IN_TRANSIT',
+          assignedTripId: trip.id,
+          vehicleSticker: vehicleSticker(trip.plan.vehicleChain[Math.min(trip.plan.vehicleChain.length - 1, Math.floor(trip.elapsedTurn / 2))]),
+          turnsRemaining: remaining,
+        };
+      }),
+    );
+  }
+
   function resetTravelSelection(keepSelectedCity = true) {
     setTravelFromId(null);
     setTravelToId(null);
     setPlannerPlans([]);
+    setSelectedPlanNo(null);
+    setSelectedSlotOffset(1);
     if (!keepSelectedCity) {
       setSelectedCityId(null);
     }
@@ -380,10 +496,14 @@ export function useGameSession() {
     setHqLevel(1);
     setActiveTrips([]);
     setPendingEvent(null);
-    setTravelFromId(null);
-    setTravelToId(null);
-    setPlannerPlans([]);
-    setSelectedCityId(null);
+    setAgents(cloneDefaultAgents());
+    setPassport(createInitialPassport());
+    setWeather(createInitialWeather());
+    setTravelNews(['玩具群岛新货船抵达，票价下调 10%。', '风暴预警：北方航线可能受影响。']);
+    setShowPassport(false);
+    setShowTimetable(false);
+    setHighlightMissionId(null);
+    resetTravelSelection(false);
     setLogs([t.logIntro1, t.logIntro2]);
     const nextCities = regions.length > 0 ? regions.flatMap((r) => r.cities ?? []) : MOCK_REGIONS.flatMap((r) => r.cities);
     const sourceRegions = regions.length > 0 ? regions : MOCK_REGIONS;
@@ -537,35 +657,65 @@ export function useGameSession() {
     }
     setTravelToId(city.id);
     setPlannerPlans(result.plans ?? []);
+    setSelectedPlanNo(result.plans?.[0]?.planNo ?? null);
+    setSelectedSlotOffset(1);
   }
 
-  function switchView(next: MapViewType) {
-    if (next === viewType) return;
-    setViewType(next);
-    resetTravelSelection(false);
+  function selectPlan(planNo: number) {
+    setSelectedPlanNo(planNo);
   }
 
-  function bookPlan(plan: TripPlan) {
-    if (!travelFrom || !travelTo) return;
-    if (!travelFrom.unlocked || !travelTo.unlocked) {
-      appendLog(t.cityLockedTrip);
+  function selectScheduleSlot(offset: number) {
+    setSelectedSlotOffset(offset);
+  }
+
+  function confirmBooking(force = false, planOverride?: TripPlan, slotOverride?: ReturnType<typeof buildScheduleSlots>[number]) {
+    const plan = planOverride ?? selectedPlan;
+    const slot = slotOverride ?? selectedSlot;
+    if (!travelFrom || !travelTo || !plan || !slot) {
       return;
     }
-    if (resources.coin < plan.totalPrice) {
-      appendLog(formatStr(t.logInsufficientCoin, {need: plan.totalPrice, have: resources.coin}));
+    const leadAgent = agents[0];
+    const price = slotPrice(plan.totalPrice, slot, slot.offset <= 1);
+    const preview = {
+      price,
+      fuel: plan.fuelCost,
+      fatigue: plan.fatigueCost,
+      canAffordCoin: resources.coin >= price,
+      canAffordFuel: resources.fuel >= plan.fuelCost,
+    };
+    if (!force && fatigueMustRest(leadAgent.fatigue + plan.fatigueCost)) {
+      appendLog(t.insufficientFatigue);
       return;
     }
-    if (resources.fuel < plan.fuelCost) {
-      appendLog(formatStr(t.logInsufficientFuel, {need: plan.fuelCost, have: resources.fuel}));
+    if (!preview.canAffordCoin) {
+      appendLog(formatStr(t.logInsufficientCoin, {need: preview.price, have: resources.coin}));
       return;
     }
-    const clueBonus = plan.planStyle === 'CHEAP' ? 1 : 0;
+    if (!preview.canAffordFuel) {
+      appendLog(formatStr(t.logInsufficientFuel, {need: preview.fuel, have: resources.fuel}));
+      return;
+    }
+    const clueBonus = plan.transferCombo ? 0 : plan.planStyle === 'CHEAP' ? 1 : 0;
     setResources((current) => ({
       ...current,
-      coin: current.coin - plan.totalPrice,
-      fuel: Math.max(0, current.fuel - plan.fuelCost),
+      coin: current.coin - preview.price,
+      fuel: Math.max(0, current.fuel - preview.fuel),
       clue: current.clue + clueBonus,
     }));
+    setAgents((current) =>
+      current.map((agent, index) =>
+        index === 0
+          ? {
+              ...agent,
+              fatigue: Math.min(100, agent.fatigue + plan.fatigueCost + (force ? 0 : 0)),
+              wit: force && fatigueMustRest(agent.fatigue + plan.fatigueCost) ? Math.max(0, agent.wit - 1) : agent.wit,
+              guard: force && fatigueMustRest(agent.fatigue + plan.fatigueCost) ? Math.max(0, agent.guard - 1) : agent.guard,
+              stamina: force && fatigueMustRest(agent.fatigue + plan.fatigueCost) ? Math.max(0, agent.stamina - 1) : agent.stamina,
+            }
+          : agent,
+      ),
+    );
     const trip: ActiveTrip = {
       id: nextTripId.current,
       from: travelFrom,
@@ -573,19 +723,100 @@ export function useGameSession() {
       plan,
       elapsedTurn: 0,
       delayTurn: 0,
-      status: 'IN_TRANSIT',
+      status: 'BOOKED',
+      departureTurn: resources.turn + slot.offset,
+      scheduleOffset: slot.offset,
+      paidPrice: preview.price,
+      leadAgentId: leadAgent.id,
     };
     nextTripId.current += 1;
-    setActiveTrips((current) => [trip, ...current]);
+    setActiveTrips((current) => {
+      const next = [trip, ...current];
+      syncAgentsWithTrips(next);
+      return next;
+    });
     appendLog(
-      formatStr(t.logBookTrip, {
+      formatStr(t.logTripBooked, {
         id: trip.id,
-        from: cityLabel(travelFrom),
-        to: cityLabel(travelTo),
-        price: plan.totalPrice,
+        offset: slot.offset,
       }),
     );
     resetTravelSelection();
+  }
+
+  function bookPlan(plan: TripPlan) {
+    const slots = buildScheduleSlots(plan.totalPrice);
+    confirmBooking(false, plan, slots[0]);
+  }
+
+  function restAgent(agentId: number, atHq = false) {
+    const cost = restCoinCost(atHq);
+    if (!atHq && resources.coin < cost) {
+      appendLog(formatStr(t.logInsufficientCoin, {need: cost, have: resources.coin}));
+      return;
+    }
+    setResources((current) => ({...current, coin: atHq ? current.coin : current.coin - cost}));
+    setAgents((current) =>
+      current.map((agent) => {
+        if (agent.id !== agentId) {
+          return agent;
+        }
+        const nextFatigue = Math.max(0, agent.fatigue - restFatiguePerTurn(atHq));
+        return {
+          ...agent,
+          fatigue: nextFatigue,
+          status: nextFatigue <= 0 ? 'STANDBY' : 'RESTING',
+        };
+      }),
+    );
+    const agent = agents.find((item) => item.id === agentId);
+    if (agent) {
+      appendLog(formatStr(t.logAgentRest, {name: agent.name}));
+    }
+  }
+
+  function purchaseVisa(regionId: number) {
+    if (!canPurchaseVisa(regionId, resources, passport)) {
+      return;
+    }
+    const req = VISA_REQUIREMENTS[regionId];
+    if (!req) {
+      return;
+    }
+    setResources((current) => ({
+      ...current,
+      clue: req.clue != null ? current.clue - req.clue : current.clue,
+      star: req.star != null ? current.star - req.star : current.star,
+    }));
+    setPassport((current) => ({...current, visas: {...current.visas, [regionId]: true}}));
+  }
+
+  function handleTripArrival(trip: ActiveTrip, nextTurnNo: number) {
+    const region = regions.find((item) => (item.cities ?? []).some((city) => city.id === trip.to.id));
+    if (region) {
+      setPassport((current) => {
+        let next = applyStamp(current, region.id);
+        const distance = trip.plan.routes.reduce((sum, route) => sum + route.distance, 0);
+        next = applyMileage(next, distance);
+        return next;
+      });
+      appendLog(formatStr(t.logPassportStamp, {region: displayRegionName(region.name)}), nextTurnNo);
+      appendLog(formatStr(t.logMileageGain, {n: trip.plan.routes.reduce((sum, route) => sum + route.distance, 0)}), nextTurnNo);
+    }
+    if (trip.plan.transferCombo) {
+      setResources((current) => ({...current, clue: current.clue + 1}));
+      appendLog(t.logComboTransfer, nextTurnNo);
+    }
+    if (trip.plan.tripleCombo) {
+      setResources((current) => ({...current, star: current.star + 10}));
+      appendLog(t.logComboTriple, nextTurnNo);
+    }
+  }
+
+  function switchView(next: MapViewType) {
+    if (next === viewType) return;
+    setViewType(next);
+    resetTravelSelection(false);
   }
 
   function applyEffect(effect: {coin?: number; clue?: number; star?: number; fuel?: number}) {
@@ -665,6 +896,13 @@ export function useGameSession() {
       const resourceDelta = {coin: 0, clue: 0, star: 0, fuel: 0};
       const arrivedTrips: ActiveTrip[] = [];
 
+      if (shouldRefreshWeather(nextTurnNo)) {
+        const nextWeather = refreshWeather(nextTurnNo, MOCK_ROUTES);
+        setWeather(nextWeather);
+        setTravelNews((current) => [nextWeather.previewMessage ?? t.weatherPreview, ...current].slice(0, 4));
+        logsToAppend.push(formatStr(t.logWeatherRefresh, {message: nextWeather.activeMessage ?? t.weatherActive}));
+      }
+
       setActiveTrips((current) => {
         const nextTrips: ActiveTrip[] = [];
         for (const trip of current) {
@@ -673,28 +911,44 @@ export function useGameSession() {
             nextTrips.push(nextTrip);
             continue;
           }
+          if (nextTrip.status === 'BOOKED') {
+            if (nextTurnNo >= nextTrip.departureTurn) {
+              nextTrip.status = 'IN_TRANSIT';
+              nextTrip.elapsedTurn = 0;
+              logsToAppend.push(formatStr(t.logTripDepart, {id: nextTrip.id}));
+            } else {
+              nextTrips.push(nextTrip);
+              continue;
+            }
+          }
 
-          nextTrip.elapsedTurn += 1;
-          if (Math.random() < 0.6) {
-            const event = pickRandomTripEvent();
-            nextTrip.lastEventCode = event.code;
-            if (event.code !== 'NONE') {
-              if (event.interactive && event.choices && !nextPendingEvent) {
-                nextTrip.status = 'PAUSED';
-                nextPendingEvent = {
-                  tripId: nextTrip.id,
-                  title: event.title,
-                  body: event.body,
-                  choices: event.choices,
-                };
-                logsToAppend.push(formatStr(t.logTripEvent, {id: nextTrip.id, title: event.title}));
-              } else if (event.effect) {
-                resourceDelta.coin += event.effect.coin ?? 0;
-                resourceDelta.clue += event.effect.clue ?? 0;
-                resourceDelta.star += event.effect.star ?? 0;
-                resourceDelta.fuel += event.effect.fuel ?? 0;
-                nextTrip.delayTurn += event.effect.delay ?? 0;
-                logsToAppend.push(formatStr(t.logTripEventDetail, {id: nextTrip.id, title: event.title, body: event.body}));
+          if (nextTrip.status === 'IN_TRANSIT') {
+            nextTrip.elapsedTurn += 1;
+            if (Math.random() < 0.25) {
+              const rolled = pickRandomTripEvent();
+              const event = rolled.event;
+              nextTrip.lastEventCode = event.code;
+              nextTrip.d100Roll = rolled.d100;
+              if (event.code !== 'NONE') {
+                if (event.interactive && event.choices && !nextPendingEvent) {
+                  nextTrip.status = 'PAUSED';
+                  nextPendingEvent = {
+                    tripId: nextTrip.id,
+                    title: event.title,
+                    body: event.body,
+                    eventCode: event.code,
+                    d100: rolled.d100,
+                    choices: event.choices,
+                  };
+                  logsToAppend.push(formatStr(t.logTripEvent, {id: nextTrip.id, title: event.title}));
+                } else if (event.effect) {
+                  resourceDelta.coin += event.effect.coin ?? 0;
+                  resourceDelta.clue += event.effect.clue ?? 0;
+                  resourceDelta.star += event.effect.star ?? 0;
+                  resourceDelta.fuel += event.effect.fuel ?? 0;
+                  nextTrip.delayTurn += event.effect.delay ?? 0;
+                  logsToAppend.push(formatStr(t.logTripEventDetail, {id: nextTrip.id, title: event.title, body: event.body}));
+                }
               }
             }
           }
@@ -706,6 +960,7 @@ export function useGameSession() {
           }
           nextTrips.push(nextTrip);
         }
+        syncAgentsWithTrips(nextTrips);
         return nextTrips;
       });
 
@@ -722,6 +977,9 @@ export function useGameSession() {
 
       const missionRefreshLogs: string[] = [];
       if (arrivedTrips.length > 0) {
+        for (const trip of arrivedTrips) {
+          handleTripArrival(trip, nextTurnNo);
+        }
         setMissions((current) =>
           current.flatMap((mission) => {
             if (mission.status !== 'OPEN') return [mission];
@@ -848,10 +1106,29 @@ export function useGameSession() {
     missionStats,
     runResolved,
     nextHqMaterials,
+    agents,
+    passport,
+    weather,
+    travelNews,
+    researchProgress,
+    selectedPlanNo,
+    selectedPlan,
+    selectedSlotOffset,
+    selectedSlot,
+    scheduleSlots,
+    bookingPreview,
+    showPassport,
+    showTimetable,
+    captainXp,
+    nextScheduleTurn,
+    highlightMissionId,
     reloadAll,
     switchView,
     handleCityClick,
     bookPlan,
+    confirmBooking,
+    selectPlan,
+    selectScheduleSlot,
     advanceTurn,
     upgradeHq,
     upgradeSelectedCity,
@@ -859,6 +1136,11 @@ export function useGameSession() {
     resetRun,
     resetTravelSelection,
     setSelectedCityId,
+    setShowPassport,
+    setShowTimetable,
+    restAgent,
+    purchaseVisa,
+    setHighlightMissionId,
   };
 }
 
