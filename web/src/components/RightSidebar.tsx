@@ -8,21 +8,9 @@ interface Props {
 }
 
 export function RightSidebar({session}: Props) {
-  const {t, logs, travelNews, researchProgress, missions, citiesForMap, setHighlightMissionId, handleCityClick, cityById} = session;
+  const {t, logs, travelNews, researchProgress, missions, citiesForMap, focusMissionRoute} = session;
 
   const openMission = missions.find((mission) => mission.status === 'OPEN');
-
-  function focusMissionRoute(fromCityId: number, toCityId: number, missionId: number) {
-    setHighlightMissionId(missionId);
-    const from = cityById.get(fromCityId);
-    const to = cityById.get(toCityId);
-    if (from) {
-      handleCityClick(from);
-    }
-    if (to) {
-      handleCityClick(to);
-    }
-  }
 
   return (
     <aside className="game-sidebar right-sidebar">
@@ -49,7 +37,7 @@ export function RightSidebar({session}: Props) {
             <button
               type="button"
               className="game-button-primary w-full text-[11px]"
-              onClick={() => focusMissionRoute(openMission.fromCityId, openMission.toCityId, openMission.id)}
+              onClick={() => focusMissionRoute(openMission.id)}
             >
               {t.viewMissionRoute}
             </button>

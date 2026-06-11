@@ -473,7 +473,9 @@
   }
   .budget-bar .is-danger { @apply text-[#d9534f]; }
 
-  .planner-actions { @apply flex justify-end gap-2; }
+  .planner-actions { @apply flex justify-end gap-2 flex-wrap; }
+  .planner-force-btn { @apply bg-[#f08a4b]/20 border-[#f08a4b] text-[#8c3b12]; }
+  .route-blocked { filter: grayscale(0.8); }
 
   .modal-overlay {
     @apply fixed inset-0 z-50 flex items-center justify-center bg-[#5a4b3f]/45 backdrop-blur-sm p-4;

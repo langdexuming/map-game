@@ -158,15 +158,16 @@ export function useGameSession() {
     if (!selectedPlan || !selectedSlot) {
       return null;
     }
-    const price = slotPrice(selectedPlan.totalPrice, selectedSlot, selectedSlot.offset <= 1);
+    const price = slotPrice(selectedPlan.totalPrice, selectedSlot, false);
     return {
       price,
       fuel: selectedPlan.fuelCost,
       fatigue: selectedPlan.fatigueCost,
       canAffordCoin: resources.coin >= price,
       canAffordFuel: resources.fuel >= selectedPlan.fuelCost,
+      fatigueBlocked: fatigueMustRest(agents[0].fatigue + selectedPlan.fatigueCost),
     };
-  }, [selectedPlan, selectedSlot, resources.coin, resources.fuel]);
+  }, [selectedPlan, selectedSlot, resources.coin, resources.fuel, agents]);
 
   const nextScheduleTurn = useMemo(
     () =>
@@ -293,12 +294,24 @@ export function useGameSession() {
     return map;
   }, [regions]);
 
+  const regionIdByCityId = useMemo(() => {
+    const map = new Map<number, number>();
+    for (const region of regions) {
+      for (const city of region.cities ?? []) {
+        map.set(city.id, region.id);
+      }
+    }
+    return map;
+  }, [regions]);
+
   const travelUnlock = useMemo(
     () => ({
       hqLevel,
       cityLevel: (id: number) => cityLevels[id] ?? cityById.get(id)?.level ?? 1,
+      regionIdOfCity: (id: number) => regionIdByCityId.get(id),
+      hasVisa: (regionId: number) => Boolean(passport.visas[regionId]),
     }),
-    [hqLevel, cityLevels, cityById],
+    [hqLevel, cityLevels, cityById, regionIdByCityId, passport.visas],
   );
 
   const missionRuntimePreview = useMemo<MissionRuntimeContext>(
@@ -386,6 +399,47 @@ export function useGameSession() {
       ];
     });
   }, [cityById, project, viewType, travelUnlock, weather]);
+
+  const blockedRoutes = useMemo(() => {
+    if (viewType !== 'TRAVEL' || !project) return [];
+    const drawn = new Set<string>();
+    return MOCK_ROUTES.flatMap((route) => {
+      if (!routeUnlocked(route, travelUnlock)) return [];
+      if (!isRouteBlocked(route, weather)) return [];
+      const key = routeSignature(route.fromCityId, route.toCityId, route.vehicleType);
+      if (drawn.has(key)) return [];
+      drawn.add(key);
+      const fromCity = cityById.get(route.fromCityId);
+      const toCity = cityById.get(route.toCityId);
+      if (!fromCity || !toCity) return [];
+      return [
+        {
+          key,
+          path: cityRoutePath(fromCity, toCity, project),
+          dash: VEHICLE_DASH[route.vehicleType],
+        },
+      ];
+    });
+  }, [cityById, project, viewType, travelUnlock, weather]);
+
+  const highlightedMissionSegments = useMemo(() => {
+    if (!highlightMissionId || !project) return [];
+    const mission = missions.find((item) => item.id === highlightMissionId);
+    if (!mission) return [];
+    const result = planTrip(mission.fromCityId, mission.toCityId, {priceDiscount: ticketDiscount, unlock: travelUnlock});
+    const routes = result.plans?.[0]?.routes ?? [];
+    return routes
+      .map((route, index) => {
+        const fromCity = cityById.get(route.fromCityId);
+        const toCity = cityById.get(route.toCityId);
+        if (!fromCity || !toCity) return null;
+        return {
+          key: `mission-${mission.id}-${index}`,
+          path: cityRoutePath(fromCity, toCity, project),
+        };
+      })
+      .filter((segment): segment is NonNullable<typeof segment> => segment !== null);
+  }, [highlightMissionId, missions, project, ticketDiscount, travelUnlock, cityById]);
 
   const highlightedTripSegments = useMemo(() => {
     if (!project) return [];
@@ -485,9 +539,43 @@ export function useGameSession() {
     setPlannerPlans([]);
     setSelectedPlanNo(null);
     setSelectedSlotOffset(1);
+    setHighlightMissionId(null);
     if (!keepSelectedCity) {
       setSelectedCityId(null);
     }
+  }
+
+  function focusMissionRoute(missionId: number) {
+    const mission = missions.find((item) => item.id === missionId);
+    if (!mission) {
+      return;
+    }
+    setHighlightMissionId(missionId);
+    if (viewType !== 'TRAVEL') {
+      setViewType('TRAVEL');
+    }
+    const from = cityById.get(mission.fromCityId);
+    const to = cityById.get(mission.toCityId);
+    if (!from || !to) {
+      return;
+    }
+    if (!from.unlocked || !to.unlocked) {
+      appendLog(t.cityLockedTrip);
+      return;
+    }
+    setSelectedCityId(from.id);
+    setTravelFromId(from.id);
+    const result = planTrip(from.id, to.id, {priceDiscount: ticketDiscount, unlock: travelUnlock});
+    if (result.error) {
+      appendLog(formatStr(t.logPlanFailed, {reason: result.error}));
+      setTravelToId(null);
+      setPlannerPlans([]);
+      return;
+    }
+    setTravelToId(to.id);
+    setPlannerPlans(result.plans ?? []);
+    setSelectedPlanNo(result.plans?.[0]?.planNo ?? null);
+    setSelectedSlotOffset(1);
   }
 
   function resetRun() {
@@ -631,6 +719,7 @@ export function useGameSession() {
 
   function handleCityClick(city: CityVO) {
     setSelectedCityId(city.id);
+    setHighlightMissionId(null);
     if (travelFromId == null) {
       if (!city.unlocked) {
         appendLog(t.cityLockedTrip);
@@ -676,7 +765,7 @@ export function useGameSession() {
       return;
     }
     const leadAgent = agents[0];
-    const price = slotPrice(plan.totalPrice, slot, slot.offset <= 1);
+    const price = slotPrice(plan.totalPrice, slot, false);
     const preview = {
       price,
       fuel: plan.fuelCost,
@@ -684,9 +773,13 @@ export function useGameSession() {
       canAffordCoin: resources.coin >= price,
       canAffordFuel: resources.fuel >= plan.fuelCost,
     };
-    if (!force && fatigueMustRest(leadAgent.fatigue + plan.fatigueCost)) {
+    const wasFatigued = fatigueMustRest(leadAgent.fatigue + plan.fatigueCost);
+    if (!force && wasFatigued) {
       appendLog(t.insufficientFatigue);
       return;
+    }
+    if (force && wasFatigued) {
+      appendLog(formatStr(t.logAgentForce, {name: leadAgent.name}));
     }
     if (!preview.canAffordCoin) {
       appendLog(formatStr(t.logInsufficientCoin, {need: preview.price, have: resources.coin}));
@@ -708,10 +801,11 @@ export function useGameSession() {
         index === 0
           ? {
               ...agent,
-              fatigue: Math.min(100, agent.fatigue + plan.fatigueCost + (force ? 0 : 0)),
-              wit: force && fatigueMustRest(agent.fatigue + plan.fatigueCost) ? Math.max(0, agent.wit - 1) : agent.wit,
-              guard: force && fatigueMustRest(agent.fatigue + plan.fatigueCost) ? Math.max(0, agent.guard - 1) : agent.guard,
-              stamina: force && fatigueMustRest(agent.fatigue + plan.fatigueCost) ? Math.max(0, agent.stamina - 1) : agent.stamina,
+              fatigue: Math.min(100, agent.fatigue + plan.fatigueCost),
+              wit: force && wasFatigued ? Math.max(0, agent.wit - 1) : agent.wit,
+              guard: force && wasFatigued ? Math.max(0, agent.guard - 1) : agent.guard,
+              stamina: force && wasFatigued ? Math.max(0, agent.stamina - 1) : agent.stamina,
+              status: 'STANDBY',
             }
           : agent,
       ),
@@ -728,6 +822,7 @@ export function useGameSession() {
       scheduleOffset: slot.offset,
       paidPrice: preview.price,
       leadAgentId: leadAgent.id,
+      forceDepart: force && wasFatigued,
     };
     nextTripId.current += 1;
     setActiveTrips((current) => {
@@ -747,6 +842,49 @@ export function useGameSession() {
   function bookPlan(plan: TripPlan) {
     const slots = buildScheduleSlots(plan.totalPrice);
     confirmBooking(false, plan, slots[0]);
+  }
+
+  function cancelTrip(tripId: number) {
+    const trip = activeTrips.find((item) => item.id === tripId && item.status === 'BOOKED');
+    if (!trip) {
+      return;
+    }
+    const fee = Math.round(trip.paidPrice * 0.3);
+    const refund = Math.max(0, trip.paidPrice - fee);
+    setResources((current) => ({...current, coin: current.coin + refund}));
+    setActiveTrips((current) => {
+      const next = current.filter((item) => item.id !== tripId);
+      syncAgentsWithTrips(next);
+      return next;
+    });
+    appendLog(formatStr(t.logTripCancelled, {id: tripId, fee, refund}));
+  }
+
+  function rescheduleTrip(tripId: number, newOffset: number) {
+    const trip = activeTrips.find((item) => item.id === tripId && item.status === 'BOOKED');
+    if (!trip) {
+      return;
+    }
+    const fee = Math.round(trip.paidPrice * 0.3);
+    if (resources.coin < fee) {
+      appendLog(formatStr(t.logInsufficientCoin, {need: fee, have: resources.coin}));
+      return;
+    }
+    setResources((current) => ({...current, coin: current.coin - fee}));
+    setActiveTrips((current) => {
+      const next = current.map((item) =>
+        item.id === tripId
+          ? {
+              ...item,
+              departureTurn: resources.turn + newOffset,
+              scheduleOffset: newOffset,
+            }
+          : item,
+      );
+      syncAgentsWithTrips(next);
+      return next;
+    });
+    appendLog(formatStr(t.logTripRescheduled, {id: tripId, fee, offset: newOffset}));
   }
 
   function restAgent(agentId: number, atHq = false) {
@@ -924,7 +1062,7 @@ export function useGameSession() {
 
           if (nextTrip.status === 'IN_TRANSIT') {
             nextTrip.elapsedTurn += 1;
-            if (Math.random() < 0.25) {
+            if (Math.random() < (nextTrip.forceDepart ? 0.35 : 0.25)) {
               const rolled = pickRandomTripEvent();
               const event = rolled.event;
               nextTrip.lastEventCode = event.code;
@@ -1098,7 +1236,9 @@ export function useGameSession() {
     project,
     regionMarkers,
     visibleRoutes,
+    blockedRoutes,
     highlightedTripSegments,
+    highlightedMissionSegments,
     activeTripTokens,
     mapBackdropStyle,
     regionNameByCityId,
@@ -1140,6 +1280,9 @@ export function useGameSession() {
     setShowTimetable,
     restAgent,
     purchaseVisa,
+    focusMissionRoute,
+    cancelTrip,
+    rescheduleTrip,
     setHighlightMissionId,
   };
 }

@@ -10,10 +10,13 @@ import {
   type TripEventDef,
   VEHICLE_RISK,
 } from './mockData';
+import {regionRequiresVisa} from './passport';
 
 export interface TravelUnlockContext {
   hqLevel: number;
   cityLevel: (cityId: number) => number;
+  regionIdOfCity?: (cityId: number) => number | undefined;
+  hasVisa?: (regionId: number) => boolean;
 }
 
 export interface TripPlan {
@@ -53,6 +56,7 @@ export interface ActiveTrip {
   lastEventCode?: string;
   d100Roll?: number;
   leadAgentId: number;
+  forceDepart?: boolean;
 }
 
 export interface TriggeredEvent {
@@ -71,6 +75,12 @@ export function routeUnlocked(route: RouteDef, ctx: TravelUnlockContext): boolea
   }
   if (route.requiresToCityLevel != null && ctx.cityLevel(route.toCityId) < route.requiresToCityLevel) {
     return false;
+  }
+  if (ctx.regionIdOfCity && ctx.hasVisa) {
+    const destRegionId = ctx.regionIdOfCity(route.toCityId);
+    if (destRegionId != null && regionRequiresVisa(destRegionId) && !ctx.hasVisa(destRegionId)) {
+      return false;
+    }
   }
   return true;
 }

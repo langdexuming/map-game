@@ -60,9 +60,14 @@ export function LeftSidebar({session}: Props) {
               </div>
               <div className={`agent-badge status-${agent.status.toLowerCase()}`}>{statusLabel(session, agent)}</div>
               {agent.status === 'NEED_REST' || agent.status === 'RESTING' ? (
-                <button type="button" className="game-button w-full text-[11px] mt-2" onClick={() => restAgent(agent.id, agent.id === 1)}>
-                  {t.agentRest}
-                </button>
+                <div className="mt-2 space-y-2">
+                  <button type="button" className="game-button w-full text-[11px]" onClick={() => restAgent(agent.id, agent.id === 1)}>
+                    {t.agentRest}
+                  </button>
+                  {agent.status === 'NEED_REST' ? (
+                    <p className="text-[10px] text-[#d9534f] font-bold">{t.insufficientFatigue} · {t.agentForceDepart}</p>
+                  ) : null}
+                </div>
               ) : null}
             </div>
           ))}

@@ -18,7 +18,9 @@ export function MapCanvas({session, onCityClick}: Props) {
     project,
     regionMarkers,
     visibleRoutes,
+    blockedRoutes,
     highlightedTripSegments,
+    highlightedMissionSegments,
     activeTripTokens,
     citiesForMap,
     selectedCityId,
@@ -64,6 +66,33 @@ export function MapCanvas({session, onCityClick}: Props) {
             strokeDasharray={route.dash}
             strokeOpacity="0.92"
             style={route.dash ? {animation: 'anim-route-dash 1.6s linear infinite'} : undefined}
+          />
+        ))}
+
+        {blockedRoutes.map((route) => (
+          <path
+            key={`blocked-${route.key}`}
+            d={route.path}
+            fill="none"
+            stroke="#9ca3af"
+            strokeWidth="0.8"
+            strokeLinecap="round"
+            strokeDasharray={route.dash ?? '4 4'}
+            strokeOpacity="0.55"
+            className="route-blocked"
+          />
+        ))}
+
+        {highlightedMissionSegments.map((seg) => (
+          <path
+            key={seg.key}
+            d={seg.path}
+            fill="none"
+            stroke="#f5d04c"
+            strokeWidth="1.4"
+            strokeLinecap="round"
+            strokeDasharray="6 4"
+            strokeOpacity="0.95"
           />
         ))}
 

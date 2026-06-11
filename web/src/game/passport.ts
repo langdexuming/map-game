@@ -6,9 +6,15 @@ export interface PassportState {
 }
 
 export const VISA_REQUIREMENTS: Record<number, {clue?: number; star?: number}> = {
-  4: {clue: 30},
+  3: {clue: 30},
   5: {star: 200},
 };
+
+export const VISA_GATED_REGIONS = [3, 5] as const;
+
+export function regionRequiresVisa(regionId: number): boolean {
+  return (VISA_GATED_REGIONS as readonly number[]).includes(regionId);
+}
 
 export const MILEAGE_GOAL = 2000;
 export const STAMP_COUNT_GOAL = 5;

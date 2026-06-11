@@ -9,9 +9,14 @@ interface Props {
 }
 
 export function TimetableModal({session}: Props) {
-  const {t, showTimetable, setShowTimetable, selectedPlan, scheduleSlots, selectedSlotOffset, selectScheduleSlot, travelFrom, travelTo, resources} = session;
+  const {t, showTimetable, setShowTimetable, selectedPlan, scheduleSlots, selectedSlotOffset, selectScheduleSlot, travelFrom, travelTo, confirmBooking} = session;
   if (!showTimetable || !selectedPlan) {
     return null;
+  }
+
+  function onConfirm() {
+    confirmBooking();
+    setShowTimetable(false);
   }
 
   return (
@@ -34,7 +39,7 @@ export function TimetableModal({session}: Props) {
             >
               <div>T+{slot.offset}</div>
               <div>{slot.label}</div>
-              <div>{formatStr(t.priceCoins, {n: slotPrice(selectedPlan.totalPrice, slot, slot.offset <= 1)})}</div>
+              <div>{formatStr(t.priceCoins, {n: slotPrice(selectedPlan.totalPrice, slot, false)})}</div>
             </button>
           ))}
         </div>
@@ -45,7 +50,7 @@ export function TimetableModal({session}: Props) {
         </div>
         <div className="planner-actions">
           <button type="button" className="game-button" onClick={() => setShowTimetable(false)}>{t.cancelBooking}</button>
-          <button type="button" className="game-button-primary" onClick={() => setShowTimetable(false)}>{t.confirmBooking}</button>
+          <button type="button" className="game-button-primary" onClick={onConfirm}>{t.confirmBooking}</button>
         </div>
       </div>
     </div>

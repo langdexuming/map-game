@@ -104,7 +104,7 @@ export function TripPlannerPanel({session}: Props) {
           {bookingPreview ? (
             <div className="budget-bar">
               <span className={bookingPreview.canAffordFuel ? '' : 'is-danger'}>{t.planFuel} -{bookingPreview.fuel}</span>
-              <span>{t.planFatigue} +{bookingPreview.fatigue}</span>
+              <span className={bookingPreview.fatigueBlocked ? 'is-danger' : ''}>{t.planFatigue} +{bookingPreview.fatigue}</span>
               <span className={bookingPreview.canAffordCoin ? '' : 'is-danger'}>
                 {formatStr(t.priceCoins, {n: bookingPreview.price})}
               </span>
@@ -113,7 +113,17 @@ export function TripPlannerPanel({session}: Props) {
 
           <div className="planner-actions">
             <button type="button" className="game-button" onClick={() => resetTravelSelection()}>{t.cancelBooking}</button>
-            <button type="button" className="game-button-primary" onClick={() => confirmBooking()} disabled={!bookingPreview || !bookingPreview.canAffordCoin || !bookingPreview.canAffordFuel}>
+            {bookingPreview?.fatigueBlocked ? (
+              <button type="button" className="game-button planner-force-btn" onClick={() => confirmBooking(true)}>
+                {t.agentForceDepart}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="game-button-primary"
+              onClick={() => confirmBooking()}
+              disabled={!bookingPreview || !bookingPreview.canAffordCoin || !bookingPreview.canAffordFuel || bookingPreview.fatigueBlocked}
+            >
               {t.confirmBooking}
             </button>
           </div>
