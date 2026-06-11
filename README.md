@@ -3,7 +3,9 @@
 > Agents: Global Control · Travel Edition  
 > 一款轻策略 + 经营养成 + 全球探险 的家庭/儿童向回合制游戏，在原作《小小特工》框架上 **叠加"出行"为核心玩法主线**。
 
-![UI Wireframe](assets/ui-wireframe-main.png)
+![主界面重设计（全中文水彩风）](assets/ui-redesign/ui-main-redesign.png)
+
+> 旧版线框稿见 `assets/ui-wireframe-main.png`，重设计方案详见 [docs/05-ui-redesign-gameplay.md](docs/05-ui-redesign-gameplay.md)
 
 ---
 
@@ -90,6 +92,7 @@ map-game/
 - [02 · 需求原型](docs/02-requirement-prototype.md) — 用例图、用户旅程、信息架构、UI 线框稿、需求清单
 - [03 · 落地路线图](docs/03-roadmap.md) — 6 个 Sprint 的每步实现图清单（全部✅）
 - [04 · 出行系统详细设计](docs/04-travel-system.md) — 多式联运、时刻表、路上事件、任务类型
+- [★ 05 · UI 素材重设计 & 玩法深化](docs/05-ui-redesign-gameplay.md) — 全中文水彩贴纸风视觉规范、7 张高保真素材（`assets/ui-redesign/`）、行程规划/事件卡/疲劳/护照等交互与玩法深化
 - [Server README](server/README.md) — 后端目录说明（**启动与完整 API 后续实现**）
 - [Client README](client/README.md) — 前端如何接入 Cocos Creator
 - [★ Web Demo README](web-demo/README.md) — 旧版 Canvas 演示（可选）
@@ -124,6 +127,7 @@ map-game/
 - [x] S2-S6 模块全量 DDL + 种子数据 + 30 项数值平衡
 - [x] S4 出行可玩 Demo 集成（Web Canvas 即开即玩）
 - [x] React + Vite Web UI 纳入根 npm workspace（`web/` / `map-game-web`）
+- [x] UI 素材重设计（全中文水彩风）+ 交互/玩法深化方案（`docs/05` + `assets/ui-redesign/`）
 
 ## 🤝 协作
 

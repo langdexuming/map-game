@@ -91,9 +91,9 @@ export const MOCK_WORLD: WorldVO = {
 export const MOCK_REGIONS: RegionVO[] = [
   {
     id: 1,
-    name: '水之大陆',
+    name: '水域之国',
     theme: '海上航线',
-    cities: [{id: 1, name: '小神盾总部', level: 1, lng: -10, lat: 30, unlocked: true}],
+    cities: [{id: 1, name: '小盾总部', level: 1, lng: -10, lat: 30, unlocked: true}],
   },
   {
     id: 2,
@@ -118,7 +118,7 @@ export const MOCK_REGIONS: RegionVO[] = [
   },
   {
     id: 5,
-    name: '绿林大陆',
+    name: '绿森林地',
     theme: '补给走廊',
     cities: [{id: 6, name: '绿林枢纽', level: 1, lng: 25, lat: 5, unlocked: true}],
   },
@@ -177,22 +177,55 @@ export const MOCK_ROUTES: RouteDef[] = [
 
 export const TRIP_EVENTS: TripEventDef[] = [
   {weight: 25, code: 'NONE', title: '一切顺利', body: '本回合平稳推进，没有任何意外。'},
-  {weight: 25, code: 'CLUE_FOUND', title: '偶遇线索', body: '路上发现一条新线索。', effect: {clue: 1}},
-  {weight: 20, code: 'TROUBLE', title: '小麻烦', body: '补给磕碰，损失 10 金币。', effect: {coin: -10}},
-  {weight: 15, code: 'WEATHER', title: '天气延迟', body: '遭遇恶劣天气，行程延迟 1 回合。', effect: {delay: 1}},
   {
-    weight: 10,
-    code: 'BANDIT',
-    title: '强盗袭击',
-    body: '前方有强盗，你要怎么处理？',
+    weight: 25,
+    code: 'CLUE_FOUND',
+    title: '偶遇线索',
+    body: '获得线索 +1 · 解锁支线',
+    interactive: true,
+    choices: [{key: 'take', label: '收下！', effect: {clue: 1, label: '获得线索 +1'}}],
+  },
+  {
+    weight: 20,
+    code: 'TROUBLE',
+    title: '小麻烦',
+    body: '补给磕碰，损失 10 金币。',
     interactive: true,
     choices: [
-      {key: 'fight', label: '正面战斗', effect: {coin: 50, label: '战斗胜利，奖励 50 金币'}},
-      {key: 'flee', label: '撤退绕路', effect: {delay: 1, label: '安全撤退，延迟 1 回合'}},
-      {key: 'bribe', label: '贿赂 100 金币', requireCoin: 100, effect: {coin: -100, label: '贿赂成功，平安通过'}},
+      {key: 'pay', label: '支付修理费 -¥10', effect: {coin: -10, label: '支付 10 金币修理'}},
+      {key: 'ignore', label: '凑合继续', effect: {delay: 1, label: '凑合继续，延误 1 回合'}},
     ],
   },
-  {weight: 5, code: 'HIDDEN', title: '隐藏支线', body: '发现一条隐藏支线，解锁额外奖励。', effect: {star: 1, clue: 2}},
+  {
+    weight: 15,
+    code: 'STORM',
+    title: '风暴来袭',
+    body: '航线关闭 · 延误 +1 回合',
+    interactive: true,
+    choices: [
+      {key: 'wait', label: '等待放晴', effect: {delay: 1, label: '等待放晴，延误 1 回合'}},
+      {key: 'sea', label: '改走海路', requireCoin: 50, effect: {coin: -50, label: '改走海路，支付差额 ¥50'}},
+    ],
+  },
+  {
+    weight: 10,
+    code: 'PIRATE',
+    title: '海盗拦截',
+    body: '护卫战斗 · 胜利 +30 金币',
+    interactive: true,
+    choices: [
+      {key: 'fight', label: '迎战', effect: {coin: 30, label: '战斗胜利，+30 金币'}},
+      {key: 'detour', label: '绕路 -¥50', requireCoin: 50, effect: {coin: -50, label: '绕路避开，-50 金币'}},
+    ],
+  },
+  {
+    weight: 5,
+    code: 'HIDDEN',
+    title: '隐藏支线',
+    body: '发现一条隐藏支线，解锁额外奖励。',
+    interactive: true,
+    choices: [{key: 'take', label: '收下！', effect: {star: 1, clue: 2, label: '星星+1 线索+2'}}],
+  },
 ];
 
 const ALL_CITIES = MOCK_REGIONS.flatMap((region) => region.cities);

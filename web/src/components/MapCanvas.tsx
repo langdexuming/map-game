@@ -18,7 +18,9 @@ export function MapCanvas({session, onCityClick}: Props) {
     project,
     regionMarkers,
     visibleRoutes,
+    blockedRoutes,
     highlightedTripSegments,
+    highlightedMissionSegments,
     activeTripTokens,
     citiesForMap,
     selectedCityId,
@@ -30,11 +32,11 @@ export function MapCanvas({session, onCityClick}: Props) {
 
   return (
     <div
-      className="absolute inset-0 z-0 overflow-hidden"
+      className="map-stage"
       style={
         mapBackdropStyle ?? {
           background:
-            'radial-gradient(ellipse at center, #2a2520 0%, #14110d 70%, #0a0806 100%)',
+            'radial-gradient(ellipse at center, rgba(246,235,210,0.55) 0%, rgba(214,186,140,0.85) 70%, rgba(140,98,57,0.35) 100%)',
         }
       }
     >
@@ -64,6 +66,33 @@ export function MapCanvas({session, onCityClick}: Props) {
             strokeDasharray={route.dash}
             strokeOpacity="0.92"
             style={route.dash ? {animation: 'anim-route-dash 1.6s linear infinite'} : undefined}
+          />
+        ))}
+
+        {blockedRoutes.map((route) => (
+          <path
+            key={`blocked-${route.key}`}
+            d={route.path}
+            fill="none"
+            stroke="#9ca3af"
+            strokeWidth="0.8"
+            strokeLinecap="round"
+            strokeDasharray={route.dash ?? '4 4'}
+            strokeOpacity="0.55"
+            className="route-blocked"
+          />
+        ))}
+
+        {highlightedMissionSegments.map((seg) => (
+          <path
+            key={seg.key}
+            d={seg.path}
+            fill="none"
+            stroke="#f5d04c"
+            strokeWidth="1.4"
+            strokeLinecap="round"
+            strokeDasharray="6 4"
+            strokeOpacity="0.95"
           />
         ))}
 
