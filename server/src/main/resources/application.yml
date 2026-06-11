@@ -54,6 +54,13 @@ game:
   redis:
     ttl-team-stats: 60
     ttl-tech-tree: 3600
+  agent:
+    rest-fatigue-per-turn: 30
+    rest-coin-cost: 10
+  passport:
+    global-discount: 0.1
+    mileage-golden: 2000
+    stamp-global: 5
 
 logging:
   level:

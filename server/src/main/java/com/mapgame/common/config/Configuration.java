@@ -60,6 +60,21 @@ public class Configuration {
     /** 科技树缓存 TTL(秒) */
     public static Integer REDIS_TTL_TECH_TREE;
 
+    /** 休整每回合降低疲劳 */
+    public static Integer AGENT_REST_FATIGUE_PER_TURN;
+
+    /** 非总部休整金币消耗 */
+    public static Integer AGENT_REST_COIN_COST;
+
+    /** 护照环球通票折扣 */
+    public static Double PASSPORT_GLOBAL_DISCOUNT;
+
+    /** 护照里程金色涂装门槛 */
+    public static Integer PASSPORT_MILEAGE_GOLDEN;
+
+    /** 护照印章环球通票门槛 */
+    public static Integer PASSPORT_STAMP_GLOBAL;
+
     @Value("${game.team.max-size:5}")
     public void setTeamMaxSize(Integer v) {
         TEAM_MAX_SIZE = v;
@@ -138,5 +153,30 @@ public class Configuration {
     @Value("${game.redis.ttl-tech-tree:3600}")
     public void setRedisTtlTechTree(Integer v) {
         REDIS_TTL_TECH_TREE = v;
+    }
+
+    @Value("${game.agent.rest-fatigue-per-turn:30}")
+    public void setAgentRestFatiguePerTurn(Integer v) {
+        AGENT_REST_FATIGUE_PER_TURN = v;
+    }
+
+    @Value("${game.agent.rest-coin-cost:10}")
+    public void setAgentRestCoinCost(Integer v) {
+        AGENT_REST_COIN_COST = v;
+    }
+
+    @Value("${game.passport.global-discount:0.1}")
+    public void setPassportGlobalDiscount(Double v) {
+        PASSPORT_GLOBAL_DISCOUNT = v;
+    }
+
+    @Value("${game.passport.mileage-golden:2000}")
+    public void setPassportMileageGolden(Integer v) {
+        PASSPORT_MILEAGE_GOLDEN = v;
+    }
+
+    @Value("${game.passport.stamp-global:5}")
+    public void setPassportStampGlobal(Integer v) {
+        PASSPORT_STAMP_GLOBAL = v;
     }
 }

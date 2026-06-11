@@ -66,3 +66,121 @@ export interface WorldBootstrapVO {
   regions: RegionVO[];
   mapView: MapViewVO;
 }
+
+export interface AgentListQuery {
+  playerId: number;
+  agentClass?: string;
+  minLevel?: number;
+}
+
+export interface AgentRestQuery {
+  playerId: number;
+  atHq?: boolean;
+}
+
+export interface AgentVO {
+  id: number;
+  name: string;
+  avatar?: string;
+  agentClass: string;
+  hp: number;
+  maxHp: number;
+  defense: number;
+  level: number;
+  fatigue: number;
+  status?: string;
+  assignedTripId?: number;
+}
+
+export interface RouteSegmentVO {
+  routeId: number;
+  fromCityId: number;
+  toCityId: number;
+  vehicleType: string;
+  distance: number;
+  price: number;
+  turn: number;
+}
+
+export interface TripPlanVO {
+  planNo: number;
+  segments: RouteSegmentVO[];
+  vehicleChain: string[];
+  totalTurn: number;
+  totalPrice: number;
+  fuelCost: number;
+  fatigueCost: number;
+  eventExpect: number;
+  bonusDesc: string;
+  planBadge: string;
+  transferCombo?: boolean;
+  tripleCombo?: boolean;
+  riskScore?: number;
+  planStyle?: string;
+}
+
+export interface TripPlanQuery {
+  fromCityId: number;
+  toCityId: number;
+  teamId: number;
+  playerId?: number;
+  worldId?: number;
+  preference?: number;
+}
+
+export interface TripBookQuery {
+  planNo: number;
+  fromCityId: number;
+  toCityId: number;
+  teamId: number;
+  playerId: number;
+  leadAgentId?: number;
+  missionId?: number;
+  worldId?: number;
+  departureOffset?: number;
+  forceDepart?: boolean;
+}
+
+export interface TripInTransitQuery {
+  playerId: number;
+}
+
+export interface TripVO {
+  id: number;
+  teamId: number;
+  playerId: number;
+  fromCityId: number;
+  toCityId: number;
+  status: string;
+  startTurn?: number;
+  arriveTurn?: number;
+  departureTurn?: number;
+  elapsedTurn?: number;
+  delayTurn?: number;
+  paidCoin?: number;
+  paidFuel?: number;
+  progressPercent?: number;
+  plan?: TripPlanVO;
+}
+
+export interface TripRefundVO {
+  refundCoin: number;
+  feeCoin: number;
+  tripId: number;
+}
+
+export interface PassportVisaPurchaseQuery {
+  playerId: number;
+  regionId: number;
+}
+
+export interface PassportVO {
+  playerId: number;
+  mileage: number;
+  goldenCoating: boolean;
+  stamps: Record<number, boolean>;
+  visas: Record<number, boolean>;
+  specialStamps: string[];
+  globalPass: boolean;
+  ticketDiscount: number;
+}

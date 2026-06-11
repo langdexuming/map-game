@@ -4,6 +4,8 @@ import {formatStr, type Strings} from '../i18n/strings';
 import type {MissionPrereqGap} from '../game/missions';
 
 export const DEFAULT_WORLD_ID = 1;
+export const DEFAULT_PLAYER_ID = 1;
+export const DEFAULT_TEAM_ID = 1;
 export const HQ_MAX_LEVEL = 5;
 export const CITY_MAX_LEVEL = 5;
 

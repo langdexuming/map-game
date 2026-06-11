@@ -13,6 +13,8 @@ import com.mapgame.modules.world.mapper.WorldMapper;
 import com.mapgame.modules.world.query.CityLevelUpgradeQuery;
 import com.mapgame.modules.world.query.MapViewQuery;
 import com.mapgame.modules.world.query.WorldHqLevelUpgradeQuery;
+import com.mapgame.modules.agent.service.AgentService;
+import com.mapgame.modules.travel.service.TravelService;
 import com.mapgame.modules.world.service.WorldService;
 import com.mapgame.modules.world.enums.MapViewType;
 import com.mapgame.modules.world.vo.CityVO;
@@ -44,6 +46,8 @@ public class WorldServiceImpl implements WorldService {
     private final WorldMapper worldMapper;
     private final RegionMapper regionMapper;
     private final CityMapper cityMapper;
+    private final TravelService travelService;
+    private final AgentService agentService;
 
     @Override
     public WorldVO getWorld(Long worldId) {
@@ -127,9 +131,12 @@ public class WorldServiceImpl implements WorldService {
             throw new BizException(ResultCode.BIZ_NOT_FOUND, "世界不存在 id=" + worldId);
         }
         int turn = Objects.isNull(world.getTurnNo()) ? 1 : world.getTurnNo();
-        world.setTurnNo(turn + 1);
+        int nextTurn = turn + 1;
+        world.setTurnNo(nextTurn);
         worldMapper.updateById(world);
-        log.info("世界推进回合 worldId={} {} -> {}", worldId, turn, world.getTurnNo());
+        travelService.advanceTrips(worldId, nextTurn);
+        agentService.advanceRestingAgents(nextTurn);
+        log.info("世界推进回合 worldId={} {} -> {}", worldId, turn, nextTurn);
         return getWorld(worldId);
     }
 

@@ -1,6 +1,9 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 import type {CityVO, MapViewType, MapViewVO, RegionVO, WorldVO} from '../api/types';
 import {BizError} from '../api/http';
+import {listAgents, restAgent as restAgentApi} from '../api/agent';
+import {getPassport, purchaseVisa as purchaseVisaApi} from '../api/passport';
+import {mergeAgentsFromVo, passportVoToState} from '../api/sync';
 import {
   advanceWorldTurn,
   bootstrapWorld,
@@ -70,6 +73,7 @@ import {
   buildCityLevelSeed,
   cityLabel,
   cityUpgradeMaterials,
+  DEFAULT_PLAYER_ID,
   DEFAULT_WORLD_ID,
   effectiveCityLevel,
   fuelCapForHq,
@@ -311,6 +315,17 @@ export function useGameSession() {
       }));
       setMissions(createMissionSet(data.regions.flatMap((r) => r.cities), 1));
       nextMissionId.current = 4;
+      try {
+        const [passportVo, agentList] = await Promise.all([
+          getPassport(DEFAULT_PLAYER_ID),
+          listAgents({playerId: DEFAULT_PLAYER_ID}),
+        ]);
+        setPassport(passportVoToState(passportVo));
+        setAgents((current) => mergeAgentsFromVo(current, agentList));
+      } catch (syncErr) {
+        const message = syncErr instanceof BizError ? syncErr.message : String(syncErr);
+        appendLog(`同步特工/护照失败：${message}`);
+      }
     } catch (e) {
       const message = e instanceof BizError ? `${e.message} (${e.code})` : String(e);
       setError(message);
@@ -1032,11 +1047,35 @@ export function useGameSession() {
     appendLog(formatStr(t.logTripRescheduled, {id: tripId, fee, offset: newOffset}));
   }
 
-  function restAgent(agentId: number, atHq?: boolean) {
+  async function restAgent(agentId: number, atHq?: boolean) {
     const atHqCity = atHq ?? selectedCityId === HQ_CITY_ID;
     const cost = restCoinCost(atHqCity);
     if (!atHqCity && resources.coin < cost) {
       appendLog(formatStr(t.logInsufficientCoin, {need: cost, have: resources.coin}));
+      return;
+    }
+    if (!usingFallback) {
+      try {
+        const vo = await restAgentApi(agentId, {playerId: DEFAULT_PLAYER_ID, atHq: atHqCity});
+        if (!atHqCity) {
+          setResources((current) => ({...current, coin: current.coin - cost}));
+        }
+        setAgents((current) =>
+          current.map((agent) =>
+            agent.id === agentId
+              ? {
+                  ...agent,
+                  fatigue: vo.fatigue,
+                  status: vo.status === 'IN_TRANSIT' ? 'IN_TRANSIT' : vo.status === 'NEED_REST' ? 'NEED_REST' : vo.status === 'RESTING' ? 'RESTING' : 'STANDBY',
+                }
+              : agent,
+          ),
+        );
+        appendLog(formatStr(t.logAgentRest, {name: vo.name}));
+      } catch (e) {
+        const message = e instanceof BizError ? `${e.message} (${e.code})` : String(e);
+        appendLog(`休整失败：${message}`);
+      }
       return;
     }
     setResources((current) => ({...current, coin: atHqCity ? current.coin : current.coin - cost}));
@@ -1060,12 +1099,27 @@ export function useGameSession() {
     }
   }
 
-  function purchaseVisa(regionId: number) {
+  async function purchaseVisa(regionId: number) {
     if (!canPurchaseVisa(regionId, resources, passport)) {
       return;
     }
     const req = VISA_REQUIREMENTS[regionId];
     if (!req) {
+      return;
+    }
+    if (!usingFallback) {
+      try {
+        const vo = await purchaseVisaApi({playerId: DEFAULT_PLAYER_ID, regionId});
+        setPassport(passportVoToState(vo));
+        setResources((current) => ({
+          ...current,
+          clue: req.clue != null ? current.clue - req.clue : current.clue,
+          star: req.star != null ? current.star - req.star : current.star,
+        }));
+      } catch (e) {
+        const message = e instanceof BizError ? `${e.message} (${e.code})` : String(e);
+        appendLog(`签证办理失败：${message}`);
+      }
       return;
     }
     setResources((current) => ({

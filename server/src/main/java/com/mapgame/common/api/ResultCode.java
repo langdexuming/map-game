@@ -30,6 +30,13 @@ public enum ResultCode {
     BIZ_TRIP_IN_TRANSIT(43003, "行程在途中, 无法操作"),
     BIZ_NOT_ENOUGH_COIN(43004, "金币不足"),
     BIZ_NOT_ENOUGH_FUEL(43005, "燃料不足"),
+    BIZ_NOT_ENOUGH_CLUE(43006, "线索不足"),
+    BIZ_NOT_ENOUGH_STAR(43007, "星星不足"),
+    BIZ_TRIP_NOT_BOOKED(43008, "行程不可退票"),
+    BIZ_AGENT_NOT_FOUND(43101, "特工不存在"),
+    BIZ_AGENT_BUSY(43102, "特工忙碌中"),
+    BIZ_VISA_ALREADY(43201, "签证已办理"),
+    BIZ_VISA_NOT_REQUIRED(43202, "该区域无需签证"),
 
     BIZ_BUILDING_MAX(44001, "建筑已达最高等级"),
     BIZ_BUILDING_BUSY(44002, "建筑正在升级"),
