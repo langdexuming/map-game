@@ -56,4 +56,13 @@ public class TripVO {
 
     @Schema(description = "方案快照")
     private TripPlanVO plan;
+
+    @Schema(description = "计划出发偏移回合")
+    private Integer scheduleOffset;
+
+    @Schema(description = "带队特工ID")
+    private Long leadAgentId;
+
+    @Schema(description = "待处理路上事件")
+    private TripEventPushVO pendingEvent;
 }

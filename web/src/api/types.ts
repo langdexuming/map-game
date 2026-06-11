@@ -160,7 +160,10 @@ export interface TripVO {
   paidCoin?: number;
   paidFuel?: number;
   progressPercent?: number;
+  scheduleOffset?: number;
+  leadAgentId?: number;
   plan?: TripPlanVO;
+  pendingEvent?: TripEventPushVO;
 }
 
 export interface TripRefundVO {
@@ -172,6 +175,52 @@ export interface TripRefundVO {
 export interface PassportVisaPurchaseQuery {
   playerId: number;
   regionId: number;
+}
+
+export interface PlayerVO {
+  id: number;
+  name: string;
+  coin: number;
+  clue: number;
+  star: number;
+  fuel: number;
+  currentTeamId?: number;
+}
+
+export interface TripRescheduleQuery {
+  playerId: number;
+  departureOffset: number;
+}
+
+export interface TripEventEffectVO {
+  coin?: number;
+  clue?: number;
+  star?: number;
+  fuel?: number;
+  delay?: number;
+  label?: string;
+}
+
+export interface TripEventChoiceVO {
+  key: string;
+  label: string;
+  requireCoin?: number;
+  effect: TripEventEffectVO;
+}
+
+export interface TripEventPushVO {
+  tripId: number;
+  eventId: number;
+  eventCode: string;
+  title: string;
+  body: string;
+  d100: number;
+  choices: TripEventChoiceVO[];
+}
+
+export interface TripEventResolveQuery {
+  playerId: number;
+  choiceKey: string;
 }
 
 export interface PassportVO {

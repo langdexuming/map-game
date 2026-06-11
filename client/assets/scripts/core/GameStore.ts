@@ -3,7 +3,7 @@
  * @author make java
  * @since 2026-05-01
  */
-import { CityVO, MapViewType, RegionVO, WorldVO } from '../api/types';
+import { AgentVO, CityVO, MapViewType, PassportVO, RegionVO, TripVO, WorldVO } from '../api/types';
 import { EVT, EventBus } from './EventBus';
 
 class GameStoreImpl {
@@ -18,6 +18,10 @@ class GameStoreImpl {
     clue: number = 0;
     star: number = 0;
     fuel: number = 0;
+
+    agents: AgentVO[] = [];
+    passport: PassportVO | null = null;
+    activeTrips: TripVO[] = [];
 
     setWorld(w: WorldVO): void {
         this.world = w;
@@ -49,6 +53,19 @@ class GameStoreImpl {
     switchView(v: MapViewType): void {
         this.currentView = v;
         EventBus.emit(EVT.VIEW_CHANGE, v);
+    }
+
+    setAgents(agents: AgentVO[]): void {
+        this.agents = agents;
+        EventBus.emit(EVT.TEAM_CHANGED, agents);
+    }
+
+    setPassport(passport: PassportVO): void {
+        this.passport = passport;
+    }
+
+    setActiveTrips(trips: TripVO[]): void {
+        this.activeTrips = trips;
     }
 }
 

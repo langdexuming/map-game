@@ -21,6 +21,7 @@ export interface WorldVO {
     id: number;
     name: string;
     turnNo: number;
+    hqLevel?: number;
 }
 
 export interface CityVO {
@@ -58,16 +59,28 @@ export interface MapViewQuery {
     viewType: MapViewType;
 }
 
+export interface PlayerVO {
+    id: number;
+    name: string;
+    coin: number;
+    clue: number;
+    star: number;
+    fuel: number;
+    currentTeamId?: number;
+}
+
 export interface AgentVO {
     id: number;
     name: string;
-    avatar: string;
+    avatar?: string;
     agentClass: string;
     hp: number;
     maxHp: number;
     defense: number;
     level: number;
     fatigue: number;
+    status?: string;
+    assignedTripId?: number;
 }
 
 export interface TeamVO {
@@ -87,20 +100,88 @@ export interface MissionBriefVO {
     expireInTurn: number;
 }
 
+export interface RouteSegmentVO {
+    routeId: number;
+    fromCityId: number;
+    toCityId: number;
+    vehicleType: string;
+    distance: number;
+    price: number;
+    turn: number;
+}
+
 export interface TripPlanVO {
     planNo: number;
+    segments?: RouteSegmentVO[];
     vehicleChain: string[];
     totalTurn: number;
     totalPrice: number;
+    fuelCost?: number;
+    fatigueCost?: number;
     eventExpect: number;
     bonusDesc: string;
+    planBadge?: string;
+    transferCombo?: boolean;
+    tripleCombo?: boolean;
+    planStyle?: string;
 }
 
 export interface TripVO {
     id: number;
     teamId: number;
+    playerId?: number;
+    fromCityId?: number;
+    toCityId?: number;
     status: string;
-    startTurn: number;
-    arriveTurn: number;
+    startTurn?: number;
+    arriveTurn?: number;
+    departureTurn?: number;
+    elapsedTurn?: number;
+    delayTurn?: number;
+    paidCoin?: number;
     progressPercent: number;
+    scheduleOffset?: number;
+    leadAgentId?: number;
+    plan?: TripPlanVO;
+}
+
+export interface TripRefundVO {
+    refundCoin: number;
+    feeCoin: number;
+    tripId: number;
+}
+
+export interface PassportVO {
+    playerId: number;
+    mileage: number;
+    goldenCoating: boolean;
+    stamps: Record<number, boolean>;
+    visas: Record<number, boolean>;
+    specialStamps: string[];
+    globalPass: boolean;
+    ticketDiscount: number;
+}
+
+export interface TripEventPushVO {
+    tripId: number;
+    eventId: number;
+    eventCode: string;
+    title: string;
+    body: string;
+    d100: number;
+    choices: TripEventChoiceVO[];
+}
+
+export interface TripEventChoiceVO {
+    key: string;
+    label: string;
+    requireCoin?: number;
+    effect: {
+        coin?: number;
+        clue?: number;
+        star?: number;
+        fuel?: number;
+        delay?: number;
+        label?: string;
+    };
 }

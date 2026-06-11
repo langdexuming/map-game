@@ -33,6 +33,9 @@ public class Configuration {
     /** 在途事件触发概率 */
     public static Double TRIP_EVENT_RATE;
 
+    /** 强行出发在途事件触发概率 */
+    public static Double FORCE_DEPART_EVENT_RATE;
+
     /** 旺季加价倍数 */
     public static Double PEAK_PRICE_RATE;
 
@@ -108,6 +111,11 @@ public class Configuration {
     @Value("${game.travel.event-rate:0.25}")
     public void setTripEventRate(Double v) {
         TRIP_EVENT_RATE = v;
+    }
+
+    @Value("${game.travel.force-depart-event-rate:0.35}")
+    public void setForceDepartEventRate(Double v) {
+        FORCE_DEPART_EVENT_RATE = v;
     }
 
     @Value("${game.travel.peak-price-rate:1.3}")

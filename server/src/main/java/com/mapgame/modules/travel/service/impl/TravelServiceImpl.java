@@ -6,21 +6,30 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.mapgame.common.api.ResultCode;
 import com.mapgame.common.config.Configuration;
 import com.mapgame.common.exception.BizException;
+import com.mapgame.common.ws.TripEventWebSocketHandler;
 import com.mapgame.modules.agent.entity.Agent;
 import com.mapgame.modules.agent.mapper.AgentMapper;
 import com.mapgame.modules.passport.service.PassportService;
 import com.mapgame.modules.player.entity.Player;
 import com.mapgame.modules.player.mapper.PlayerMapper;
+import com.mapgame.modules.travel.domain.TravelEventDice;
 import com.mapgame.modules.travel.domain.TravelPathPlanner;
 import com.mapgame.modules.travel.domain.TravelUnlockContext;
 import com.mapgame.modules.travel.entity.Route;
 import com.mapgame.modules.travel.entity.Trip;
+import com.mapgame.modules.travel.entity.TripEvent;
 import com.mapgame.modules.travel.mapper.RouteMapper;
+import com.mapgame.modules.travel.mapper.TripEventMapper;
 import com.mapgame.modules.travel.mapper.TripMapper;
 import com.mapgame.modules.travel.query.TripBookQuery;
+import com.mapgame.modules.travel.query.TripEventResolveQuery;
 import com.mapgame.modules.travel.query.TripInTransitQuery;
 import com.mapgame.modules.travel.query.TripPlanQuery;
+import com.mapgame.modules.travel.query.TripRescheduleQuery;
 import com.mapgame.modules.travel.service.TravelService;
+import com.mapgame.modules.travel.vo.TripEventChoiceVO;
+import com.mapgame.modules.travel.vo.TripEventEffectVO;
+import com.mapgame.modules.travel.vo.TripEventPushVO;
 import com.mapgame.modules.travel.vo.TripPlanVO;
 import com.mapgame.modules.travel.vo.TripRefundVO;
 import com.mapgame.modules.travel.vo.TripVO;
@@ -35,11 +44,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 /**
@@ -54,10 +65,12 @@ public class TravelServiceImpl implements TravelService {
 
     private final RouteMapper routeMapper;
     private final TripMapper tripMapper;
+    private final TripEventMapper tripEventMapper;
     private final PlayerMapper playerMapper;
     private final AgentMapper agentMapper;
     private final CityMapper cityMapper;
     private final WorldMapper worldMapper;
+    private final TripEventWebSocketHandler tripEventWebSocketHandler;
     @Lazy
     private final PassportService passportService;
 
@@ -164,7 +177,7 @@ public class TravelServiceImpl implements TravelService {
         }
 
         log.info("订票成功 tripId={} playerId={} {} -> {}", trip.getId(), query.getPlayerId(), query.getFromCityId(), query.getToCityId());
-        return toTripVO(trip, plan);
+        return toTripVO(trip, plan, world);
     }
 
     @Override
@@ -206,8 +219,89 @@ public class TravelServiceImpl implements TravelService {
         wrapper.orderByDesc("id");
         List<Trip> trips = tripMapper.selectList(wrapper);
         List<TripVO> result = new ArrayList<>(trips.size());
+        World world = loadWorld(1L);
         for (Trip trip : trips) {
-            result.add(toTripVO(trip, parsePlan(trip)));
+            result.add(toTripVO(trip, parsePlan(trip), world));
+        }
+        return result;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public TripVO rescheduleTrip(Long tripId, TripRescheduleQuery query) {
+        Trip trip = loadOwnedTrip(tripId, query.getPlayerId());
+        if (!"BOOKED".equals(trip.getStatus())) {
+            throw new BizException(ResultCode.BIZ_TRIP_NOT_BOOKED);
+        }
+        int paid = trip.getPaidCoin() == null ? 0 : trip.getPaidCoin();
+        int fee = (int) Math.round(paid * Configuration.REFUND_FEE_RATE);
+        Player player = playerMapper.selectById(query.getPlayerId());
+        if (player == null || (player.getCoin() == null ? 0 : player.getCoin()) < fee) {
+            throw new BizException(ResultCode.BIZ_NOT_ENOUGH_COIN);
+        }
+        player.setCoin(player.getCoin() - fee);
+        playerMapper.updateById(player);
+        World world = loadWorld(1L);
+        int turn = world.getTurnNo() == null ? 1 : world.getTurnNo();
+        trip.setDepartureTurn(turn + query.getDepartureOffset());
+        tripMapper.updateById(trip);
+        log.info("改签 tripId={} offset={} fee={}", tripId, query.getDepartureOffset(), fee);
+        return toTripVO(trip, parsePlan(trip), world);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public TripVO resolveTripEvent(Long tripId, TripEventResolveQuery query) {
+        Trip trip = loadOwnedTrip(tripId, query.getPlayerId());
+        if (!"PAUSED".equals(trip.getStatus())) {
+            throw new BizException(ResultCode.BIZ_PARAM_INVALID, "行程无待处理事件");
+        }
+        TripEvent pending = findUnresolvedEvent(tripId);
+        if (pending == null) {
+            throw new BizException(ResultCode.BIZ_NOT_FOUND, "事件不存在");
+        }
+        Map<String, Object> payload = parsePayload(pending.getPayload());
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> choiceMaps = (List<Map<String, Object>>) payload.get("choices");
+        TripEventChoiceVO choice = findChoice(choiceMaps, query.getChoiceKey());
+        if (choice == null) {
+            throw new BizException(ResultCode.BIZ_PARAM_INVALID, "无效选项");
+        }
+        Player player = playerMapper.selectById(query.getPlayerId());
+        if (player == null) {
+            throw new BizException(ResultCode.BIZ_NOT_FOUND, "玩家不存在");
+        }
+        if (choice.getRequireCoin() != null && (player.getCoin() == null ? 0 : player.getCoin()) < choice.getRequireCoin()) {
+            throw new BizException(ResultCode.BIZ_NOT_ENOUGH_COIN);
+        }
+        applyEffect(player, choice.getEffect());
+        playerMapper.updateById(player);
+        if (choice.getEffect() != null && choice.getEffect().getDelay() != null) {
+            int delay = trip.getDelayTurn() == null ? 0 : trip.getDelayTurn();
+            trip.setDelayTurn(delay + choice.getEffect().getDelay());
+        }
+        trip.setStatus("IN_TRANSIT");
+        tripMapper.updateById(trip);
+        payload.put("resolved", true);
+        payload.put("choiceKey", query.getChoiceKey());
+        pending.setPayload(JSONUtil.toJsonStr(payload));
+        tripEventMapper.updateById(pending);
+        log.info("事件决议 tripId={} choice={}", tripId, query.getChoiceKey());
+        return toTripVO(trip, parsePlan(trip), loadWorld(1L));
+    }
+
+    @Override
+    public List<TripEventPushVO> listPendingEvents(Long playerId) {
+        QueryWrapper<Trip> wrapper = new QueryWrapper<>();
+        wrapper.eq("player_id", playerId);
+        wrapper.eq("status", "PAUSED");
+        List<Trip> paused = tripMapper.selectList(wrapper);
+        List<TripEventPushVO> result = new ArrayList<>();
+        for (Trip trip : paused) {
+            TripEventPushVO push = buildPendingPush(trip.getId());
+            if (push != null) {
+                result.add(push);
+            }
         }
         return result;
     }
@@ -248,16 +342,131 @@ public class TravelServiceImpl implements TravelService {
             if ("IN_TRANSIT".equals(trip.getStatus())) {
                 int elapsed = (trip.getElapsedTurn() == null ? 0 : trip.getElapsedTurn()) + 1;
                 trip.setElapsedTurn(elapsed);
-                if (elapsed >= totalTurn + delay) {
+                maybeTriggerTripEvent(trip, currentTurn);
+                delay = trip.getDelayTurn() == null ? 0 : trip.getDelayTurn();
+                if ("IN_TRANSIT".equals(trip.getStatus()) && elapsed >= totalTurn + delay) {
                     trip.setStatus("ARRIVED");
                     trip.setArriveTurn(currentTurn);
                     tripMapper.updateById(trip);
                     onTripArrived(trip, plan);
-                } else {
+                } else if ("IN_TRANSIT".equals(trip.getStatus()) || "PAUSED".equals(trip.getStatus())) {
                     tripMapper.updateById(trip);
                 }
             }
         }
+    }
+
+    private void maybeTriggerTripEvent(Trip trip, Integer currentTurn) {
+        double rate = Objects.equals(trip.getForceDepart(), 1)
+                ? Configuration.FORCE_DEPART_EVENT_RATE
+                : Configuration.TRIP_EVENT_RATE;
+        if (ThreadLocalRandom.current().nextDouble() >= rate) {
+            return;
+        }
+        int d100 = TravelEventDice.rollD100();
+        String eventCode = TravelEventDice.pickEventCode(d100);
+        TravelEventDice.TripEventDefinition def = TravelEventDice.definitionOf(eventCode);
+        TripEvent record = new TripEvent();
+        record.setTripId(trip.getId());
+        record.setEventCode(eventCode);
+        record.setHappenedTurn(currentTurn);
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("d100", d100);
+        payload.put("resolved", false);
+        payload.put("title", def.title());
+        payload.put("body", def.body());
+        payload.put("choices", def.choices());
+        record.setPayload(JSONUtil.toJsonStr(payload));
+        tripEventMapper.insert(record);
+        if ("NONE".equals(eventCode)) {
+            return;
+        }
+        if (def.interactive()) {
+            trip.setStatus("PAUSED");
+            TripEventPushVO push = new TripEventPushVO();
+            push.setTripId(trip.getId());
+            push.setEventId(record.getId());
+            push.setEventCode(eventCode);
+            push.setTitle(def.title());
+            push.setBody(def.body());
+            push.setD100(d100);
+            push.setChoices(def.choices());
+            tripEventWebSocketHandler.pushJson(trip.getPlayerId(), push);
+        }
+    }
+
+    private TripEvent findUnresolvedEvent(Long tripId) {
+        QueryWrapper<TripEvent> wrapper = new QueryWrapper<>();
+        wrapper.eq("trip_id", tripId);
+        wrapper.orderByDesc("id");
+        List<TripEvent> events = tripEventMapper.selectList(wrapper);
+        for (TripEvent event : events) {
+            Map<String, Object> payload = parsePayload(event.getPayload());
+            if (!Boolean.TRUE.equals(payload.get("resolved"))) {
+                return event;
+            }
+        }
+        return null;
+    }
+
+    private TripEventPushVO buildPendingPush(Long tripId) {
+        TripEvent event = findUnresolvedEvent(tripId);
+        if (event == null) {
+            return null;
+        }
+        Map<String, Object> payload = parsePayload(event.getPayload());
+        TripEventPushVO push = new TripEventPushVO();
+        push.setTripId(tripId);
+        push.setEventId(event.getId());
+        push.setEventCode(event.getEventCode());
+        push.setTitle((String) payload.get("title"));
+        push.setBody((String) payload.get("body"));
+        push.setD100((Integer) payload.get("d100"));
+        Object choices = payload.get("choices");
+        if (choices instanceof List<?> list) {
+            push.setChoices(list.stream()
+                    .map(item -> JSONUtil.toBean(JSONUtil.toJsonStr(item), TripEventChoiceVO.class))
+                    .toList());
+        }
+        return push;
+    }
+
+    @SuppressWarnings("unchecked")
+    private TripEventChoiceVO findChoice(List<Map<String, Object>> choiceMaps, String choiceKey) {
+        if (choiceMaps == null) {
+            return null;
+        }
+        for (Map<String, Object> map : choiceMaps) {
+            if (Objects.equals(map.get("key"), choiceKey)) {
+                return JSONUtil.toBean(JSONUtil.toJsonStr(map), TripEventChoiceVO.class);
+            }
+        }
+        return null;
+    }
+
+    private void applyEffect(Player player, TripEventEffectVO effect) {
+        if (effect == null) {
+            return;
+        }
+        if (effect.getCoin() != null) {
+            player.setCoin(Math.max(0, (player.getCoin() == null ? 0 : player.getCoin()) + effect.getCoin()));
+        }
+        if (effect.getClue() != null) {
+            player.setClue(Math.max(0, (player.getClue() == null ? 0 : player.getClue()) + effect.getClue()));
+        }
+        if (effect.getStar() != null) {
+            player.setStar(Math.max(0, (player.getStar() == null ? 0 : player.getStar()) + effect.getStar()));
+        }
+        if (effect.getFuel() != null) {
+            player.setFuel(Math.max(0, (player.getFuel() == null ? 0 : player.getFuel()) + effect.getFuel()));
+        }
+    }
+
+    private Map<String, Object> parsePayload(String payload) {
+        if (payload == null || payload.isBlank()) {
+            return new HashMap<>();
+        }
+        return JSONUtil.toBean(payload, Map.class);
     }
 
     private void onTripArrived(Trip trip, TripPlanVO plan) {
@@ -357,7 +566,7 @@ public class TravelServiceImpl implements TravelService {
         return JSONUtil.toBean(trip.getPlanJson(), TripPlanVO.class);
     }
 
-    private TripVO toTripVO(Trip trip, TripPlanVO plan) {
+    private TripVO toTripVO(Trip trip, TripPlanVO plan, World world) {
         TripVO vo = new TripVO();
         BeanUtil.copyProperties(trip, vo);
         vo.setPlan(plan);
@@ -366,6 +575,13 @@ public class TravelServiceImpl implements TravelService {
         int elapsed = trip.getElapsedTurn() == null ? 0 : trip.getElapsedTurn();
         int denom = Math.max(1, total + delay);
         vo.setProgressPercent(Math.min(100, (int) Math.round(elapsed * 100.0 / denom)));
+        if (world != null && trip.getDepartureTurn() != null) {
+            int turn = world.getTurnNo() == null ? 1 : world.getTurnNo();
+            vo.setScheduleOffset(Math.max(0, trip.getDepartureTurn() - turn));
+        }
+        if ("PAUSED".equals(trip.getStatus())) {
+            vo.setPendingEvent(buildPendingPush(trip.getId()));
+        }
         return vo;
     }
 }

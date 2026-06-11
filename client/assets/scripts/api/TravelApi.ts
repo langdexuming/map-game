@@ -1,16 +1,18 @@
 /**
- * S4 Travel 接口封装 (占位, 待后端 S4 实现)
+ * S4 Travel 接口封装
  * @author make java
  * @since 2026-05-01
  */
 import { HttpClient } from './HttpClient';
-import { TripPlanVO, TripVO } from './types';
+import { TripPlanVO, TripRefundVO, TripVO } from './types';
 
 export interface TripPlanQuery {
     fromCityId: number;
     toCityId: number;
     teamId: number;
-    preference: 1 | 2 | 3;
+    playerId?: number;
+    worldId?: number;
+    preference?: 1 | 2 | 3;
 }
 
 export interface TripBookQuery {
@@ -18,7 +20,17 @@ export interface TripBookQuery {
     fromCityId: number;
     toCityId: number;
     teamId: number;
+    playerId: number;
+    leadAgentId?: number;
     missionId?: number;
+    worldId?: number;
+    departureOffset?: number;
+    forceDepart?: boolean;
+}
+
+export interface TripRescheduleQuery {
+    playerId: number;
+    departureOffset: number;
 }
 
 export class TravelApi {
@@ -31,7 +43,15 @@ export class TravelApi {
         return HttpClient.post<TripVO>('/travel/book', query);
     }
 
-    static cancelTrip(tripId: number): Promise<{ refundCoin: number; feeCoin: number }> {
-        return HttpClient.post(`/travel/trip/${tripId}/cancel`, {});
+    static cancelTrip(tripId: number, playerId: number): Promise<TripRefundVO> {
+        return HttpClient.post<TripRefundVO>(`/travel/trip/${tripId}/cancel?playerId=${playerId}`, {});
+    }
+
+    static rescheduleTrip(tripId: number, query: TripRescheduleQuery): Promise<TripVO> {
+        return HttpClient.post<TripVO>(`/travel/trip/${tripId}/reschedule`, query);
+    }
+
+    static listActiveTrips(playerId: number): Promise<TripVO[]> {
+        return HttpClient.post<TripVO[]>('/travel/in-transit', { playerId });
     }
 }

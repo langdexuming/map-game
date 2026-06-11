@@ -5,6 +5,7 @@
  * @since 2026-05-01
  */
 import { _decorator, Component, Node } from 'cc';
+import { TripEventSocket } from '../api/TripEventSocket';
 import { WorldApi } from '../api/WorldApi';
 import { MapViewType } from '../api/types';
 import { EVT, EventBus } from '../core/EventBus';
@@ -19,6 +20,8 @@ export class WorldScene extends Component {
     @property(MapLayer)
     mapLayer: MapLayer = null!;
 
+    private tripEventSocket: TripEventSocket | null = null;
+
     async start(): Promise<void> {
         try {
             const world = await WorldApi.getWorld(GameStore.worldId);
@@ -32,6 +35,13 @@ export class WorldScene extends Component {
 
         EventBus.on(EVT.VIEW_CHANGE, (v) => this.onViewChange(v as MapViewType));
         EventBus.on(EVT.NODE_CLICK, (id) => console.log('[WorldScene] node click', id));
+
+        this.tripEventSocket = new TripEventSocket();
+        this.tripEventSocket.connect(1);
+    }
+
+    onDestroy(): void {
+        this.tripEventSocket?.disconnect();
     }
 
     private async onViewChange(view: MapViewType): Promise<void> {

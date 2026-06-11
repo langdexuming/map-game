@@ -2,8 +2,25 @@ import {useEffect, useMemo, useRef, useState} from 'react';
 import type {CityVO, MapViewType, MapViewVO, RegionVO, WorldVO} from '../api/types';
 import {BizError} from '../api/http';
 import {listAgents, restAgent as restAgentApi} from '../api/agent';
+import {getPlayer} from '../api/player';
 import {getPassport, purchaseVisa as purchaseVisaApi} from '../api/passport';
-import {mergeAgentsFromVo, passportVoToState} from '../api/sync';
+import {
+  findPendingEventFromTrips,
+  mergeAgentsFromVo,
+  passportVoToState,
+  pendingEventFromPush,
+  syncActiveTripsFromVo,
+  tripVoToActiveTrip,
+} from '../api/sync';
+import {
+  bookTrip as bookTripApi,
+  cancelTrip as cancelTripApi,
+  listActiveTrips,
+  listPendingEvents,
+  rescheduleTrip as rescheduleTripApi,
+  resolveTripEvent,
+} from '../api/travel';
+import {connectTripEvents} from '../api/ws';
 import {
   advanceWorldTurn,
   bootstrapWorld,
@@ -74,6 +91,7 @@ import {
   cityLabel,
   cityUpgradeMaterials,
   DEFAULT_PLAYER_ID,
+  DEFAULT_TEAM_ID,
   DEFAULT_WORLD_ID,
   effectiveCityLevel,
   fuelCapForHq,
@@ -316,15 +334,38 @@ export function useGameSession() {
       setMissions(createMissionSet(data.regions.flatMap((r) => r.cities), 1));
       nextMissionId.current = 4;
       try {
-        const [passportVo, agentList] = await Promise.all([
+        const cityMap = new Map<number, CityVO>();
+        for (const region of data.regions) {
+          for (const city of region.cities ?? []) {
+            cityMap.set(city.id, city);
+          }
+        }
+        const turnNo = data.world.turnNo ?? 1;
+        const [playerVo, passportVo, agentList, trips] = await Promise.all([
+          getPlayer(DEFAULT_PLAYER_ID),
           getPassport(DEFAULT_PLAYER_ID),
           listAgents({playerId: DEFAULT_PLAYER_ID}),
+          listActiveTrips({playerId: DEFAULT_PLAYER_ID}),
         ]);
+        setResources((current) => ({
+          ...current,
+          coin: playerVo.coin,
+          clue: playerVo.clue,
+          star: playerVo.star,
+          fuel: playerVo.fuel,
+          turn: turnNo,
+        }));
         setPassport(passportVoToState(passportVo));
         setAgents((current) => mergeAgentsFromVo(current, agentList));
+        const syncedTrips = syncActiveTripsFromVo(trips, cityMap, turnNo);
+        setActiveTrips(syncedTrips);
+        const pending = findPendingEventFromTrips(trips);
+        if (pending) {
+          setPendingEvent(pending);
+        }
       } catch (syncErr) {
         const message = syncErr instanceof BizError ? syncErr.message : String(syncErr);
-        appendLog(`同步特工/护照失败：${message}`);
+        appendLog(`同步玩家/行程失败：${message}`);
       }
     } catch (e) {
       const message = e instanceof BizError ? `${e.message} (${e.code})` : String(e);
@@ -648,6 +689,16 @@ export function useGameSession() {
             turnsRemaining: Math.max(0, trip.departureTurn - turnRef.current) + trip.plan.totalTurn,
           };
         }
+        if (trip.status === 'PAUSED') {
+          const remaining = Math.max(0, trip.plan.totalTurn + trip.delayTurn - trip.elapsedTurn);
+          return {
+            ...agent,
+            status: 'IN_TRANSIT',
+            assignedTripId: trip.id,
+            vehicleSticker: vehicleSticker(trip.plan.vehicleChain[Math.min(trip.plan.vehicleChain.length - 1, Math.floor(trip.elapsedTurn / 2))]),
+            turnsRemaining: remaining,
+          };
+        }
         const remaining = Math.max(0, trip.plan.totalTurn + trip.delayTurn - trip.elapsedTurn);
         return {
           ...agent,
@@ -659,6 +710,47 @@ export function useGameSession() {
       }),
     );
   }
+
+  async function syncOnlineState(turnNo?: number) {
+    const turn = turnNo ?? turnRef.current;
+    const [playerVo, passportVo, agentList, trips] = await Promise.all([
+      getPlayer(DEFAULT_PLAYER_ID),
+      getPassport(DEFAULT_PLAYER_ID),
+      listAgents({playerId: DEFAULT_PLAYER_ID}),
+      listActiveTrips({playerId: DEFAULT_PLAYER_ID}),
+    ]);
+    setResources((current) => ({
+      ...current,
+      coin: playerVo.coin,
+      clue: playerVo.clue,
+      star: playerVo.star,
+      fuel: Math.min(fuelCapForHq(hqLevel), playerVo.fuel),
+      turn,
+    }));
+    setPassport(passportVoToState(passportVo));
+    setAgents((current) => mergeAgentsFromVo(current, agentList));
+    const syncedTrips = syncActiveTripsFromVo(trips, cityById, turn);
+    setActiveTrips(syncedTrips);
+    syncAgentsWithTrips(syncedTrips);
+    const pending = findPendingEventFromTrips(trips);
+    setPendingEvent(pending);
+    return syncedTrips;
+  }
+
+  useEffect(() => {
+    if (usingFallback || loading) {
+      return;
+    }
+    const disconnect = connectTripEvents(DEFAULT_PLAYER_ID, (push) => {
+      setPendingEvent(pendingEventFromPush(push));
+      setActiveTrips((current) =>
+        current.map((trip) => (trip.id === push.tripId ? {...trip, status: 'PAUSED' as const} : trip)),
+      );
+      appendLog(formatStr(t.logTripEvent, {id: push.tripId, title: push.title}));
+    });
+    return disconnect;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [usingFallback, loading]);
 
   function resetTravelSelection(keepSelectedCity = true) {
     setTravelFromId(null);
@@ -908,11 +1000,11 @@ export function useGameSession() {
     }
   }
 
-  function confirmBooking(force = false, planOverride?: TripPlan, slotOverride?: ReturnType<typeof buildScheduleSlots>[number]) {
+  async function confirmBooking(force = false, planOverride?: TripPlan, slotOverride?: ReturnType<typeof buildScheduleSlots>[number]) {
     const basePlan = planOverride ?? selectedPlan;
     const slot = slotOverride ?? selectedSlot;
     const plan = basePlan && slot ? applySlotToPlan(basePlan, slot) : basePlan;
-    if (!travelFrom || !travelTo || !plan || !slot) {
+    if (!travelFrom || !travelTo || !plan || !slot || !basePlan) {
       return;
     }
     const leadAgent = agents[0];
@@ -940,6 +1032,66 @@ export function useGameSession() {
       appendLog(formatStr(t.logInsufficientFuel, {need: preview.fuel, have: resources.fuel}));
       return;
     }
+
+    if (!usingFallback) {
+      try {
+        const matchedMission = missions.find(
+          (mission) =>
+            mission.status === 'OPEN' &&
+            mission.fromCityId === travelFrom.id &&
+            mission.toCityId === travelTo.id,
+        );
+        const vo = await bookTripApi({
+          planNo: basePlan.planNo,
+          fromCityId: travelFrom.id,
+          toCityId: travelTo.id,
+          teamId: DEFAULT_TEAM_ID,
+          playerId: DEFAULT_PLAYER_ID,
+          leadAgentId: leadAgent.id,
+          worldId: DEFAULT_WORLD_ID,
+          missionId: matchedMission?.id,
+          departureOffset: slot.offset,
+          forceDepart: force && wasFatigued,
+        });
+        if (matchedMission) {
+          setTrackedMissionId(matchedMission.id);
+        }
+        if (force && wasFatigued) {
+          setAgents((current) =>
+            current.map((agent, index) =>
+              index === 0
+                ? {
+                    ...agent,
+                    wit: Math.max(0, agent.wit - 1),
+                    guard: Math.max(0, agent.guard - 1),
+                    stamina: Math.max(0, agent.stamina - 1),
+                  }
+                : agent,
+            ),
+          );
+        }
+        const localTrip = tripVoToActiveTrip(vo, cityById, resources.turn);
+        if (localTrip) {
+          localTrip.plan = plan;
+          localTrip.paidPrice = preview.price;
+          localTrip.forceDepart = force && wasFatigued;
+          setActiveTrips((current) => {
+            const next = [localTrip, ...current.filter((item) => item.id !== localTrip.id)];
+            syncAgentsWithTrips(next);
+            return next;
+          });
+        } else {
+          await syncOnlineState(resources.turn);
+        }
+        appendLog(formatStr(t.logTripBooked, {id: vo.id, offset: slot.offset}));
+        resetTravelSelection();
+      } catch (e) {
+        const message = e instanceof BizError ? `${e.message} (${e.code})` : String(e);
+        appendLog(`订票失败：${message}`);
+      }
+      return;
+    }
+
     const clueBonus = plan.transferCombo ? 0 : plan.planStyle === 'CHEAP' ? 1 : 0;
     setResources((current) => ({
       ...current,
@@ -1004,9 +1156,20 @@ export function useGameSession() {
     confirmBooking(false, plan, slots[0]);
   }
 
-  function cancelTrip(tripId: number) {
+  async function cancelTrip(tripId: number) {
     const trip = activeTrips.find((item) => item.id === tripId && item.status === 'BOOKED');
     if (!trip) {
+      return;
+    }
+    if (!usingFallback) {
+      try {
+        const refundVo = await cancelTripApi(tripId, DEFAULT_PLAYER_ID);
+        await syncOnlineState(resources.turn);
+        appendLog(formatStr(t.logTripCancelled, {id: tripId, fee: refundVo.feeCoin, refund: refundVo.refundCoin}));
+      } catch (e) {
+        const message = e instanceof BizError ? `${e.message} (${e.code})` : String(e);
+        appendLog(`退票失败：${message}`);
+      }
       return;
     }
     const fee = Math.round(trip.paidPrice * 0.3);
@@ -1020,12 +1183,27 @@ export function useGameSession() {
     appendLog(formatStr(t.logTripCancelled, {id: tripId, fee, refund}));
   }
 
-  function rescheduleTrip(tripId: number, newOffset: number) {
+  async function rescheduleTrip(tripId: number, newOffset: number) {
     const trip = activeTrips.find((item) => item.id === tripId && item.status === 'BOOKED');
     if (!trip) {
       return;
     }
     const fee = Math.round(trip.paidPrice * 0.3);
+    if (!usingFallback) {
+      if (resources.coin < fee) {
+        appendLog(formatStr(t.logInsufficientCoin, {need: fee, have: resources.coin}));
+        return;
+      }
+      try {
+        await rescheduleTripApi(tripId, {playerId: DEFAULT_PLAYER_ID, departureOffset: newOffset});
+        await syncOnlineState(resources.turn);
+        appendLog(formatStr(t.logTripRescheduled, {id: tripId, fee, offset: newOffset}));
+      } catch (e) {
+        const message = e instanceof BizError ? `${e.message} (${e.code})` : String(e);
+        appendLog(`改签失败：${message}`);
+      }
+      return;
+    }
     if (resources.coin < fee) {
       appendLog(formatStr(t.logInsufficientCoin, {need: fee, have: resources.coin}));
       return;
@@ -1186,12 +1364,28 @@ export function useGameSession() {
     });
   }
 
-  function resolveInteractiveChoice(choiceKey: string) {
-    if (!pendingEvent) return;
+  async function resolveInteractiveChoice(choiceKey: string) {
+    if (!pendingEvent) {
+      return;
+    }
     const choice = pendingEvent.choices.find((c) => c.key === choiceKey);
-    if (!choice) return;
+    if (!choice) {
+      return;
+    }
     if (choice.requireCoin != null && resources.coin < choice.requireCoin) {
       appendLog(formatStr(t.logCannotAffordChoice, {coin: choice.requireCoin}));
+      return;
+    }
+    if (!usingFallback) {
+      try {
+        await resolveTripEvent(pendingEvent.tripId, {playerId: DEFAULT_PLAYER_ID, choiceKey});
+        await syncOnlineState(resources.turn);
+        appendLog(formatStr(t.logTripChoice, {id: pendingEvent.tripId, detail: formatChoice(choice)}));
+        setPendingEvent(null);
+      } catch (e) {
+        const message = e instanceof BizError ? `${e.message} (${e.code})` : String(e);
+        appendLog(`事件决议失败：${message}`);
+      }
       return;
     }
     applyEffect(choice.effect);
@@ -1233,16 +1427,93 @@ export function useGameSession() {
     setAdvanceTurnBusy(true);
     try {
       let nextTurnNo = resources.turn + 1;
+      const beforeTrips = activeTrips;
       if (!usingFallback) {
         try {
           const w = await advanceWorldTurn(DEFAULT_WORLD_ID);
           setWorld(w);
           nextTurnNo = w.turnNo ?? nextTurnNo;
+          if (shouldRefreshWeather(nextTurnNo)) {
+            const nextWeather = refreshWeather(nextTurnNo, MOCK_ROUTES);
+            setWeather(nextWeather);
+            setTravelNews((current) => [nextWeather.previewMessage ?? t.weatherPreview, ...current].slice(0, 4));
+            appendLog(formatStr(t.logWeatherRefresh, {message: nextWeather.activeMessage ?? t.weatherActive}));
+          }
+          const syncedTrips = await syncOnlineState(nextTurnNo);
+          const syncedIds = new Set(syncedTrips.map((trip) => trip.id));
+          const arrivedTrips = beforeTrips.filter(
+            (trip) =>
+              (trip.status === 'IN_TRANSIT' || trip.status === 'PAUSED') &&
+              !syncedIds.has(trip.id),
+          );
+          const logsToAppend: string[] = [];
+          for (const trip of arrivedTrips) {
+            logsToAppend.push(formatStr(t.logTripArrived, {id: trip.id, city: cityLabel(trip.to)}));
+          }
+          if (arrivedTrips.length > 0) {
+            const missionCtx: MissionRuntimeContext = {
+              hqLevel,
+              cityLevel: (id: number) => cityLevels[id] ?? cityById.get(id)?.level ?? 1,
+              clue: resources.clue,
+              star: resources.star,
+            };
+            setMissions((current) =>
+              current.flatMap((mission) => {
+                if (mission.status !== 'OPEN') {
+                  return [mission];
+                }
+                const matchedTrip = arrivedTrips.find(
+                  (trip) => trip.from.id === mission.fromCityId && trip.to.id === mission.toCityId,
+                );
+                if (!matchedTrip) {
+                  return [mission];
+                }
+                const completedOnTime = nextTurnNo <= mission.deadlineTurn;
+                if (completedOnTime) {
+                  const {reward, tier} = computeMissionPayout(mission, missionCtx);
+                  settleMissionRewardPayload(reward);
+                  if (tier === 'partial') {
+                    logsToAppend.push(`${t.missionPartialReward}：${mission.title}`);
+                  } else {
+                    logsToAppend.push(formatStr(t.logMissionComplete, {title: mission.title}));
+                  }
+                  const replacement = createMissionBatch(
+                    citiesForMap,
+                    nextTurnNo,
+                    nextMissionId.current,
+                    1,
+                    current.filter((i) => i.status === 'OPEN').map((i) => `${i.fromCityId}-${i.toCityId}`),
+                  );
+                  nextMissionId.current += replacement.length;
+                  return [{...mission, status: 'COMPLETED'}, ...replacement];
+                }
+                logsToAppend.push(formatStr(t.logMissionTimeout, {title: mission.title}));
+                const replacement = createMissionBatch(
+                  citiesForMap,
+                  nextTurnNo,
+                  nextMissionId.current,
+                  1,
+                  current.filter((i) => i.status === 'OPEN').map((i) => `${i.fromCityId}-${i.toCityId}`),
+                );
+                nextMissionId.current += replacement.length;
+                return [{...mission, status: 'FAILED'}, ...replacement];
+              }),
+            );
+          }
+          if (logsToAppend.length > 0) {
+            setLogs((current) => [...logsToAppend.map((line) => `[T${nextTurnNo}] ${line}`), ...current].slice(0, 80));
+          }
+          const pendingList = await listPendingEvents(DEFAULT_PLAYER_ID);
+          if (pendingList.length > 0) {
+            setPendingEvent(pendingEventFromPush(pendingList[0]));
+          }
+          setResources((current) => ({...current, turn: nextTurnNo}));
         } catch (e) {
           const message = e instanceof BizError ? `${e.message} (${e.code})` : String(e);
           appendLog(`${t.turnSyncFail}：${message}`);
           return;
         }
+        return;
       }
 
       let nextPendingEvent: PendingEvent | null = null;
