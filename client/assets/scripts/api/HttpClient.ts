@@ -7,7 +7,7 @@ import { Result } from './types';
 
 export class HttpClient {
 
-    private static baseUrl: string = 'http://127.0.0.1:8080/api';
+    private static baseUrl: string = 'http://192.168.3.248:8080/api';
 
     static setBaseUrl(url: string): void {
         HttpClient.baseUrl = url;

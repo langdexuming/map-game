@@ -1,0 +1,40 @@
+{
+  "name": "map-game-desktop",
+  "version": "0.1.0",
+  "description": "小小特工 · 出行特工版 · 桌面客户端",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --win",
+    "dist": "electron-builder --win --publish never"
+  },
+  "devDependencies": {
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.mapgame.desktop",
+    "productName": "MapGameDesktop",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "main.js",
+      "package.json",
+      "dist/**/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeDirectory": true,
+      "shortcutName": "小小特工出行版"
+    }
+  }
+}

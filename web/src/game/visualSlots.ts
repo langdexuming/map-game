@@ -10,6 +10,7 @@
  * @author make java
  * @since 2026-05-12
  */
+import {publicAsset} from '../lib/publicAsset';
 export interface VertexImageSlot {
   /** 稳定键，供代码与脚本引用 */
   slotKey: string;
@@ -109,5 +110,5 @@ export function backdropUrlForRegionTheme(theme: string | undefined): string | n
     return null;
   }
   const slot = VERTEX_IMAGE_SLOTS.find((item) => item.slotKey === key);
-  return slot?.publicPath ?? null;
+  return slot ? publicAsset(slot.publicPath) : null;
 }

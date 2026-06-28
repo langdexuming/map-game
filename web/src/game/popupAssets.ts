@@ -6,8 +6,9 @@
  * 通过 `<img src=...>` 直接由浏览器加载，前端代码不需要 import 二进制。
  */
 import type {VehicleType} from './mockData';
+import {publicAsset} from '../lib/publicAsset';
 
-const BASE = '/generated';
+const BASE = publicAsset('generated');
 
 export const POPUP_ASSET = {
   // 事件模态
